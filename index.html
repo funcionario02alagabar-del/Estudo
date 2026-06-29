@@ -167,6 +167,37 @@
     .revisao-box { background: var(--surface-0); border-radius: 12px; padding: 14px; margin-bottom: 16px; border: 1px solid var(--border); }
     .revisao-tag { font-size: 11px; padding: 2px 9px; border-radius: 20px; background: var(--bg-accent); color: var(--text-accent); display: inline-block; margin-bottom: 10px; font-weight: 500; }
 
+    /* ANOTAÇÕES DURANTE TIMER */
+    .timer-card-wrap { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 820px; margin: 0 auto; align-items: start; }
+    .anotacoes-panel { background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
+    .anotacoes-title { font-size: 13px; font-weight: 600; margin-bottom: 12px; display: flex; align-items: center; gap: 6px; }
+    .anotacoes-tabs { display: flex; gap: 0; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; margin-bottom: 10px; }
+    .anotacoes-tab { flex: 1; padding: 7px 4px; text-align: center; font-size: 11px; cursor: pointer; color: var(--text-secondary); background: var(--surface-0); transition: all 0.1s; display: flex; align-items: center; justify-content: center; gap: 4px; }
+    .anotacoes-tab.active { background: var(--bg-accent); color: var(--text-accent); font-weight: 500; }
+    .anotacoes-panel-content { display: none; }
+    .anotacoes-panel-content.active { display: block; }
+
+    /* TELA FINALIZAR */
+    .finalizar-wrap { max-width: 480px; margin: 0 auto; }
+    .finalizar-resumo { background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 16px; }
+    .finalizar-info { display: flex; gap: 20px; margin-bottom: 16px; }
+    .finalizar-info-item { text-align: center; }
+    .finalizar-info-val { font-size: 22px; font-weight: 600; }
+    .finalizar-info-lab { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+
+    /* CONTEÚDO EXTRA */
+    .conteudo-tabs { display: flex; gap: 0; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; margin-bottom: 12px; }
+    .conteudo-tab { flex: 1; padding: 8px 6px; text-align: center; font-size: 12px; cursor: pointer; color: var(--text-secondary); background: var(--surface-0); transition: all 0.1s; display: flex; align-items: center; justify-content: center; gap: 5px; }
+    .conteudo-tab.active { background: var(--bg-accent); color: var(--text-accent); font-weight: 500; }
+    .conteudo-panel { display: none; }
+    .conteudo-panel.active { display: block; }
+    .upload-area { border: 2px dashed var(--border); border-radius: 10px; padding: 24px; text-align: center; cursor: pointer; transition: all 0.15s; background: var(--surface-0); }
+    .upload-area:hover { border-color: var(--border-accent); background: var(--bg-accent); }
+    .upload-area i { font-size: 28px; color: var(--text-muted); display: block; margin-bottom: 8px; }
+    .upload-area p { font-size: 13px; color: var(--text-muted); }
+    .upload-preview { background: var(--bg-success); border: 1px solid var(--border-success); border-radius: 8px; padding: 10px 12px; font-size: 12px; color: var(--text-success); display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+    .conteudo-badge { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; padding: 2px 8px; border-radius: 20px; background: var(--bg-success); color: var(--text-success); margin-left: 6px; font-weight: 500; }
+
     /* CONFIG */
     .settings-row { display: flex; align-items: center; justify-content: space-between; padding: 13px 0; border-bottom: 1px solid var(--border); gap: 12px; }
     .settings-row:last-child { border-bottom: none; }
@@ -257,23 +288,142 @@
             <div class="section-title" style="margin-top:8px">Disciplina</div>
             <div class="select-materia" id="disciplinas-timer"></div>
             <div class="section-title">Assunto específico</div>
-            <input type="text" id="input-assunto" placeholder="Ex: Concordância verbal, Juros simples..." style="width:100%;margin-bottom:14px">
-            <button class="btn btn-primary" onclick="iniciarTimer()" style="width:100%">Iniciar estudo</button>
+            <input type="text" id="input-assunto" placeholder="Ex: Concordância verbal, Juros simples..." style="width:100%;margin-bottom:16px">
+
+            <div class="section-title">Conteúdo para a IA gerar questões <span style="color:var(--text-muted);font-weight:400;text-transform:none;letter-spacing:0">(opcional — enriquece as questões)</span></div>
+            <div class="conteudo-tabs">
+              <div class="conteudo-tab active" onclick="switchConteudo('resumo',this)"><i class="ti ti-pencil"></i> Resumo</div>
+              <div class="conteudo-tab" onclick="switchConteudo('imagem',this)"><i class="ti ti-photo"></i> Imagem</div>
+              <div class="conteudo-tab" onclick="switchConteudo('pdf',this)"><i class="ti ti-file-type-pdf"></i> PDF</div>
+            </div>
+
+            <div class="conteudo-panel active" id="panel-resumo">
+              <textarea id="input-resumo" placeholder="Escreva aqui um resumo do que você estudou. A IA vai gerar questões com base nesse conteúdo..." style="width:100%;min-height:90px;padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface-0);color:var(--text-primary);font-size:13px;resize:vertical;margin-bottom:4px;font-family:var(--font-sans)"></textarea>
+              <div style="font-size:11px;color:var(--text-muted)">Se deixar em branco, a IA usa só o assunto digitado acima.</div>
+            </div>
+
+            <div class="conteudo-panel" id="panel-imagem">
+              <div class="upload-area" onclick="document.getElementById('input-imagem').click()">
+                <i class="ti ti-photo-up"></i>
+                <p>Clique para subir uma foto do caderno, apostila ou slide</p>
+                <p style="font-size:11px;margin-top:4px">JPG, PNG, WEBP</p>
+              </div>
+              <input type="file" id="input-imagem" accept="image/*" style="display:none" onchange="previsualizarArquivo('imagem')">
+              <div id="preview-imagem" style="display:none" class="upload-preview"><i class="ti ti-check"></i><span id="nome-imagem"></span></div>
+            </div>
+
+            <div class="conteudo-panel" id="panel-pdf">
+              <div class="upload-area" onclick="document.getElementById('input-pdf').click()">
+                <i class="ti ti-file-type-pdf"></i>
+                <p>Clique para subir um PDF da apostila ou material de estudo</p>
+                <p style="font-size:11px;margin-top:4px">Máximo recomendado: 5 páginas</p>
+              </div>
+              <input type="file" id="input-pdf" accept="application/pdf" style="display:none" onchange="previsualizarArquivo('pdf')">
+              <div id="preview-pdf" style="display:none" class="upload-preview"><i class="ti ti-check"></i><span id="nome-pdf"></span></div>
+            </div>
+
+            <div style="margin-top:14px">
+              <button class="btn btn-primary" onclick="iniciarTimer()" style="width:100%">Iniciar estudo</button>
+            </div>
             <div id="timer-err" style="color:var(--text-danger);font-size:12px;margin-top:8px;display:none"></div>
           </div>
           <div id="timer-step2" style="display:none">
-            <div class="timer-wrap">
-              <div class="timer-materia" id="timer-mat-nome"></div>
-              <div class="timer-assunto" id="timer-assunto-nome"></div>
-              <div class="timer-display" id="timer-display">00:00:00</div>
-              <div class="progress-bar"><div class="progress-fill" id="timer-progress" style="width:0%"></div></div>
-              <div class="timer-meta">
-                <div class="timer-meta-item"><div class="timer-meta-val" id="timer-meta-label">1h</div><div class="timer-meta-lab">meta</div></div>
-                <div class="timer-meta-item"><div class="timer-meta-val" id="timer-pct">0%</div><div class="timer-meta-lab">concluído</div></div>
+            <!-- LAYOUT DUAS COLUNAS: Timer + Anotações -->
+            <div class="timer-card-wrap">
+              <!-- Timer -->
+              <div class="card">
+                <div class="timer-wrap" style="padding:8px 0">
+                  <div class="timer-materia" id="timer-mat-nome"></div>
+                  <div class="timer-assunto" id="timer-assunto-nome"></div>
+                  <div class="timer-display" id="timer-display">00:00:00</div>
+                  <div class="progress-bar"><div class="progress-fill" id="timer-progress" style="width:0%"></div></div>
+                  <div class="timer-meta">
+                    <div class="timer-meta-item"><div class="timer-meta-val" id="timer-meta-label">1h</div><div class="timer-meta-lab">meta</div></div>
+                    <div class="timer-meta-item"><div class="timer-meta-val" id="timer-pct">0%</div><div class="timer-meta-lab">concluído</div></div>
+                  </div>
+                  <div class="btn-row">
+                    <button class="btn" id="btn-pausar" onclick="pausarTimer()">Pausar</button>
+                    <button class="btn btn-primary" onclick="irParaFinalizar()">Finalizar estudo</button>
+                  </div>
+                </div>
               </div>
-              <div class="btn-row">
-                <button class="btn" id="btn-pausar" onclick="pausarTimer()">Pausar</button>
-                <button class="btn btn-primary" onclick="finalizarEstudo()">Finalizar estudo</button>
+              <!-- Anotações durante o estudo -->
+              <div class="anotacoes-panel">
+                <div class="anotacoes-title"><i class="ti ti-notes"></i> Anotações do estudo</div>
+                <div class="anotacoes-tabs">
+                  <div class="anotacoes-tab active" onclick="switchAnotacao('resumo-dur',this)"><i class="ti ti-pencil"></i> Resumo</div>
+                  <div class="anotacoes-tab" onclick="switchAnotacao('img-dur',this)"><i class="ti ti-photo"></i> Imagem</div>
+                  <div class="anotacoes-tab" onclick="switchAnotacao('pdf-dur',this)"><i class="ti ti-file-type-pdf"></i> PDF</div>
+                </div>
+                <div class="anotacoes-panel-content active" id="panel-resumo-dur">
+                  <textarea id="resumo-durante" placeholder="Anote pontos importantes enquanto estuda. Dúvidas, conceitos, fórmulas..." style="width:100%;min-height:160px;padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface-0);color:var(--text-primary);font-size:13px;resize:vertical;font-family:var(--font-sans)"></textarea>
+                  <div style="font-size:11px;color:var(--text-muted);margin-top:4px">Salvo automaticamente ao finalizar</div>
+                </div>
+                <div class="anotacoes-panel-content" id="panel-img-dur">
+                  <div class="upload-area" onclick="document.getElementById('img-durante').click()">
+                    <i class="ti ti-photo-up"></i>
+                    <p>Foto do caderno ou apostila</p>
+                    <p style="font-size:11px;margin-top:4px">JPG, PNG, WEBP</p>
+                  </div>
+                  <input type="file" id="img-durante" accept="image/*" style="display:none" onchange="prevArquivoDurante('img')">
+                  <div id="prev-img-dur" style="display:none" class="upload-preview"><i class="ti ti-check"></i><span id="nome-img-dur"></span></div>
+                </div>
+                <div class="anotacoes-panel-content" id="panel-pdf-dur">
+                  <div class="upload-area" onclick="document.getElementById('pdf-durante').click()">
+                    <i class="ti ti-file-type-pdf"></i>
+                    <p>PDF do material estudado</p>
+                    <p style="font-size:11px;margin-top:4px">Máx. recomendado: 5 páginas</p>
+                  </div>
+                  <input type="file" id="pdf-durante" accept="application/pdf" style="display:none" onchange="prevArquivoDurante('pdf')">
+                  <div id="prev-pdf-dur" style="display:none" class="upload-preview"><i class="ti ti-check"></i><span id="nome-pdf-dur"></span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- TELA DE FINALIZAÇÃO -->
+          <div id="timer-step3" style="display:none">
+            <div class="finalizar-wrap">
+              <div class="card-title" style="margin-bottom:16px">Finalizar estudo</div>
+              <div class="finalizar-resumo">
+                <div style="font-size:12px;color:var(--text-muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px;font-weight:600">Sessão de hoje</div>
+                <div class="finalizar-info">
+                  <div class="finalizar-info-item"><div class="finalizar-info-val" id="fin-mat" style="font-size:14px;font-weight:600"></div><div class="finalizar-info-lab">disciplina</div></div>
+                  <div class="finalizar-info-item"><div class="finalizar-info-val" id="fin-tempo"></div><div class="finalizar-info-lab">estudados</div></div>
+                </div>
+                <div id="fin-assunto-label" style="font-size:13px;color:var(--text-secondary);margin-bottom:4px"></div>
+              </div>
+
+              <div class="card" style="margin-bottom:16px">
+                <div class="card-title">Conteúdo para a IA <span style="font-weight:400;color:var(--text-muted)">(opcional)</span></div>
+                <div style="font-size:12px;color:var(--text-muted);margin-bottom:12px">Adicione ou edite o conteúdo que a IA usará para gerar questões</div>
+                <div class="conteudo-tabs">
+                  <div class="conteudo-tab active" id="fin-tab-resumo" onclick="switchFinalizarTab('resumo',this)"><i class="ti ti-pencil"></i> Resumo</div>
+                  <div class="conteudo-tab" id="fin-tab-imagem" onclick="switchFinalizarTab('imagem',this)"><i class="ti ti-photo"></i> Imagem</div>
+                  <div class="conteudo-tab" id="fin-tab-pdf" onclick="switchFinalizarTab('pdf',this)"><i class="ti ti-file-type-pdf"></i> PDF</div>
+                </div>
+                <div class="conteudo-panel active" id="fin-panel-resumo">
+                  <textarea id="resumo-finalizar" placeholder="Resumo do que você estudou..." style="width:100%;min-height:100px;padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface-0);color:var(--text-primary);font-size:13px;resize:vertical;font-family:var(--font-sans)"></textarea>
+                </div>
+                <div class="conteudo-panel" id="fin-panel-imagem">
+                  <div class="upload-area" onclick="document.getElementById('img-finalizar').click()">
+                    <i class="ti ti-photo-up"></i><p>Foto do caderno ou apostila</p>
+                  </div>
+                  <input type="file" id="img-finalizar" accept="image/*" style="display:none" onchange="prevArquivoFinalizar('imagem')">
+                  <div id="prev-img-fin" style="display:none" class="upload-preview"><i class="ti ti-check"></i><span id="nome-img-fin"></span></div>
+                </div>
+                <div class="conteudo-panel" id="fin-panel-pdf">
+                  <div class="upload-area" onclick="document.getElementById('pdf-finalizar').click()">
+                    <i class="ti ti-file-type-pdf"></i><p>PDF do material estudado</p>
+                  </div>
+                  <input type="file" id="pdf-finalizar" accept="application/pdf" style="display:none" onchange="prevArquivoFinalizar('pdf')">
+                  <div id="prev-pdf-fin" style="display:none" class="upload-preview"><i class="ti ti-check"></i><span id="nome-pdf-fin"></span></div>
+                </div>
+              </div>
+
+              <div class="btn-row" style="justify-content:flex-start;gap:10px">
+                <button class="btn" onclick="voltarAoTimer()"><i class="ti ti-arrow-left"></i> Voltar</button>
+                <button class="btn btn-primary" onclick="confirmarFinalizar()">Salvar e finalizar ✓</button>
               </div>
             </div>
           </div>
@@ -444,6 +594,7 @@
   };
 
   let timerInterval = null, timerSec = 0, timerPaused = false, timerMat = '', timerAssunto = '';
+  let conteudoExtra = { tipo: null, texto: null, base64: null, mimeType: null }; // conteúdo extra para IA
   let qMat = '', qQtd = 5, questoesList = [], qAtual = 0, qAcertos = 0, qErros = 0, qRespondida = false;
   let revPeriodo = 'semana', revQtd = 20, revList = [], revAtual = 0, revAcertos = 0, revErros = 0, revRespondida = false;
 
@@ -610,13 +761,132 @@
     } catch(e) { console.error(e); }
   }
 
+  // ─── CONTEÚDO EXTRA ───────────────────────────────────────
+  function switchConteudo(tipo, el) {
+    document.querySelectorAll('.conteudo-tab').forEach(t=>t.classList.remove('active'));
+    document.querySelectorAll('.conteudo-panel').forEach(p=>p.classList.remove('active'));
+    el.classList.add('active');
+    document.getElementById('panel-'+tipo).classList.add('active');
+  }
+
+  function previsualizarArquivo(tipo) {
+    const input = document.getElementById('input-'+tipo);
+    const file  = input.files[0];
+    if (!file) return;
+    document.getElementById('preview-'+tipo).style.display = 'flex';
+    document.getElementById('nome-'+tipo).textContent = file.name + ' (' + (file.size/1024).toFixed(0) + ' KB)';
+  }
+
+  async function coletarConteudoExtra() {
+    // Resumo em texto
+    const resumo = document.getElementById('input-resumo').value.trim();
+    if (resumo) return { tipo: 'texto', texto: resumo };
+
+    // Imagem
+    const imgFile = document.getElementById('input-imagem').files[0];
+    if (imgFile) {
+      const b64 = await fileToBase64(imgFile);
+      return { tipo: 'imagem', base64: b64, mimeType: imgFile.type };
+    }
+
+    // PDF
+    const pdfFile = document.getElementById('input-pdf').files[0];
+    if (pdfFile) {
+      const b64 = await fileToBase64(pdfFile);
+      return { tipo: 'pdf', base64: b64, mimeType: 'application/pdf' };
+    }
+
+    return null;
+  }
+
+  function fileToBase64(file) {
+    return new Promise((res, rej) => {
+      const r = new FileReader();
+      r.onload = () => res(r.result.split(',')[1]);
+      r.onerror = () => rej(new Error('Erro ao ler arquivo'));
+      r.readAsDataURL(file);
+    });
+  }
+
+  function switchAnotacao(painel, el) {
+    document.querySelectorAll('.anotacoes-tab').forEach(t=>t.classList.remove('active'));
+    document.querySelectorAll('.anotacoes-panel-content').forEach(p=>p.classList.remove('active'));
+    el.classList.add('active');
+    document.getElementById('panel-'+painel).classList.add('active');
+  }
+
+  function switchFinalizarTab(painel, el) {
+    document.querySelectorAll('.conteudo-tab').forEach(t=>t.classList.remove('active'));
+    document.querySelectorAll('.conteudo-panel').forEach(p=>p.classList.remove('active'));
+    el.classList.add('active');
+    document.getElementById('fin-panel-'+painel).classList.add('active');
+  }
+
+  function prevArquivoDurante(tipo) {
+    const input = document.getElementById(tipo+'-durante');
+    const file  = input.files[0];
+    if (!file) return;
+    document.getElementById('prev-'+tipo+'-dur').style.display = 'flex';
+    document.getElementById('nome-'+tipo+'-dur').textContent = file.name + ' (' + (file.size/1024).toFixed(0) + ' KB)';
+  }
+
+  function prevArquivoFinalizar(tipo) {
+    const input = document.getElementById(tipo+'-finalizar');
+    const file  = input.files[0];
+    if (!file) return;
+    document.getElementById('prev-'+tipo.replace('imagem','img')+'-fin').style.display = 'flex';
+    document.getElementById('nome-'+tipo.replace('imagem','img')+'-fin').textContent = file.name + ' (' + (file.size/1024).toFixed(0) + ' KB)';
+  }
+
+  // Coleta conteúdo da tela de finalização (prioridade) ou da tela inicial/durante
+  async function coletarConteudoFinal() {
+    // 1. Tela de finalização (maior prioridade)
+    const resumoFin = document.getElementById('resumo-finalizar')?.value.trim();
+    if (resumoFin) return { tipo: 'texto', texto: resumoFin };
+    const imgFin = document.getElementById('img-finalizar')?.files[0];
+    if (imgFin) return { tipo: 'imagem', base64: await fileToBase64(imgFin), mimeType: imgFin.type };
+    const pdfFin = document.getElementById('pdf-finalizar')?.files[0];
+    if (pdfFin) return { tipo: 'pdf', base64: await fileToBase64(pdfFin), mimeType: 'application/pdf' };
+    // 2. Durante o estudo
+    const resumoDur = document.getElementById('resumo-durante')?.value.trim();
+    if (resumoDur) return { tipo: 'texto', texto: resumoDur };
+    const imgDur = document.getElementById('img-durante')?.files[0];
+    if (imgDur) return { tipo: 'imagem', base64: await fileToBase64(imgDur), mimeType: imgDur.type };
+    const pdfDur = document.getElementById('pdf-durante')?.files[0];
+    if (pdfDur) return { tipo: 'pdf', base64: await fileToBase64(pdfDur), mimeType: 'application/pdf' };
+    // 3. Tela inicial (já coletado antes)
+    return conteudoExtra?.tipo ? conteudoExtra : null;
+  }
+
+  function irParaFinalizar() {
+    clearInterval(timerInterval);
+    // Mostra resumo da sessão
+    const h=Math.floor(timerSec/3600), m=Math.floor((timerSec%3600)/60);
+    document.getElementById('fin-mat').textContent    = timerMat;
+    document.getElementById('fin-tempo').textContent  = h+'h '+String(m).padStart(2,'0')+'min';
+    document.getElementById('fin-assunto-label').textContent = timerAssunto ? 'Assunto: '+timerAssunto : '';
+    // Pré-preenche resumo com o que foi digitado durante
+    const resumoDur = document.getElementById('resumo-durante').value.trim();
+    if (resumoDur) document.getElementById('resumo-finalizar').value = resumoDur;
+    document.getElementById('timer-step2').style.display = 'none';
+    document.getElementById('timer-step3').style.display = 'block';
+  }
+
+  function voltarAoTimer() {
+    document.getElementById('timer-step3').style.display = 'none';
+    document.getElementById('timer-step2').style.display = 'block';
+    // Retoma timer
+    timerInterval = setInterval(tickTimer, 1000);
+  }
+
   // ─── TIMER ────────────────────────────────────────────────
-  function iniciarTimer() {
+  async function iniciarTimer() {
     const assunto = document.getElementById('input-assunto').value.trim();
     const errEl   = document.getElementById('timer-err');
     if (!timerMat) { errEl.style.display='block'; errEl.textContent='Selecione uma disciplina.'; return; }
     errEl.style.display = 'none';
-    timerAssunto = assunto;
+    timerAssunto   = assunto;
+    conteudoExtra  = await coletarConteudoExtra();
     document.getElementById('timer-step1').style.display = 'none';
     document.getElementById('timer-step2').style.display = 'block';
     document.getElementById('timer-mat-nome').textContent    = timerMat;
@@ -640,19 +910,23 @@
 
   function pausarTimer() { timerPaused=!timerPaused; document.getElementById('btn-pausar').textContent=timerPaused?'Retomar':'Pausar'; }
 
-  async function finalizarEstudo() {
-    clearInterval(timerInterval);
+  async function confirmarFinalizar() {
     const streak = await calcularStreak();
+    const conteudoFinal = await coletarConteudoFinal();
     try { await supa('/rest/v1/sessoes_estudo', { method:'POST', body: JSON.stringify({ user_id: currentUser.user.id, disciplina: timerMat, assunto: timerAssunto||null, tempo_segundos: timerSec, streak }) }); }
     catch(e) { console.error('Erro ao salvar sessão:', e); }
-    sessaoAtual = { materia: timerMat, assunto: timerAssunto };
+    sessaoAtual = { materia: timerMat, assunto: timerAssunto, conteudoExtra: conteudoFinal };
     const h=Math.floor(timerSec/3600), m=Math.floor((timerSec%3600)/60);
-    document.getElementById('timer-step2').style.display = 'none';
-    document.getElementById('timer-step1').style.display = 'block';
-    timerMat = '';
+    // Reset completo
+    timerMat = ''; timerAssunto = ''; conteudoExtra = { tipo: null };
     document.querySelectorAll('#disciplinas-timer .mat-btn').forEach(b=>b.classList.remove('active'));
-    document.getElementById('input-assunto').value = '';
-    alert(`Estudo registrado!\n\nDisciplina: ${sessaoAtual.materia}\nAssunto: ${sessaoAtual.assunto||'—'}\nTempo: ${h}h ${String(m).padStart(2,'0')}min\n\nVá para "Questões" para praticar!`);
+    ['input-assunto','input-resumo','resumo-durante','resumo-finalizar'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+    ['input-imagem','input-pdf','img-durante','pdf-durante','img-finalizar','pdf-finalizar'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+    ['prev-img-dur','prev-pdf-dur','prev-img-fin','prev-pdf-fin','preview-imagem','preview-pdf'].forEach(id=>{ const el=document.getElementById(id); if(el) el.style.display='none'; });
+    document.getElementById('timer-step3').style.display = 'none';
+    document.getElementById('timer-step1').style.display = 'block';
+    const tipoLabel = conteudoFinal?.tipo === 'texto' ? '📝 Resumo' : conteudoFinal?.tipo === 'imagem' ? '📷 Imagem' : conteudoFinal?.tipo === 'pdf' ? '📄 PDF' : 'Nenhum';
+    alert(`Estudo registrado!\n\nDisciplina: ${sessaoAtual.materia}\nAssunto: ${sessaoAtual.assunto||'—'}\nTempo: ${h}h ${String(m).padStart(2,'0')}min\nConteúdo para IA: ${tipoLabel}\n\nVá para "Questões" para praticar!`);
   }
 
   async function calcularStreak() {
@@ -672,8 +946,11 @@
   // ─── QUESTÕES ─────────────────────────────────────────────
   function checkSessaoAtual() {
     const box = document.getElementById('q-sessao-box');
-    if (sessaoAtual) { box.style.display='block'; document.getElementById('q-sessao-info').textContent = sessaoAtual.materia+(sessaoAtual.assunto?' — '+sessaoAtual.assunto:''); }
-    else box.style.display = 'none';
+    if (sessaoAtual) {
+      box.style.display='block';
+      const tipoLabel = sessaoAtual.conteudoExtra?.tipo === 'texto' ? ' · 📝 Resumo' : sessaoAtual.conteudoExtra?.tipo === 'imagem' ? ' · 📷 Imagem' : sessaoAtual.conteudoExtra?.tipo === 'pdf' ? ' · 📄 PDF' : '';
+      document.getElementById('q-sessao-info').innerHTML = `${sessaoAtual.materia}${sessaoAtual.assunto?' — '+sessaoAtual.assunto:''}${tipoLabel ? `<span class="conteudo-badge">${tipoLabel}</span>` : ''}`;
+    } else box.style.display = 'none';
   }
 
   function usarSessaoAtual() {
@@ -685,19 +962,54 @@
 
   function setQQtd(n,el) { qQtd=n; document.getElementById('q-custom').value=''; document.querySelectorAll('#q-select .btn-sm').forEach(b=>b.style.fontWeight='400'); if(el)el.style.fontWeight='600'; }
 
+  function montarPromptCesgranrio(qtd, disciplina, assunto, conteudo) {
+    const estilo = `Você é um elaborador de questões da banca Cesgranrio para concursos públicos bancários (Banco do Brasil, Caixa, Petrobras). Siga rigorosamente o estilo Cesgranrio:
+- Enunciados contextualizados com situações reais do dia a dia bancário ou profissional
+- Textos introdutórios com cenários ("João é funcionário de um banco e precisa...", "Uma empresa recebe uma proposta...")
+- 5 alternativas (A a E), todas plausíveis, com apenas uma correta
+- Distratores bem elaborados, que confundem quem não domina o conteúdo
+- Linguagem formal e precisa
+- Evite enunciados diretos e simples como "O que é X?" — contextualize sempre`;
+
+    const topico = assunto ? `sobre "${assunto}" dentro de ${disciplina}` : `sobre ${disciplina}`;
+
+    let userContent;
+    if (conteudo?.tipo === 'texto') {
+      userContent = `${estilo}\n\nGere ${qtd} questões ${topico}, baseadas prioritariamente no seguinte conteúdo estudado:\n\n"${conteudo.texto}"\n\nRetorne APENAS JSON válido: {"questoes":[{"enunciado":"...","opcoes":{"A":"...","B":"...","C":"...","D":"...","E":"..."},"gabarito":"A","explicacao":"..."}]}`;
+      return { messages: [{ role:'user', content: userContent }] };
+    } else if (conteudo?.tipo === 'imagem') {
+      return { messages: [{ role:'user', content: [
+        { type:'image', source:{ type:'base64', media_type: conteudo.mimeType, data: conteudo.base64 } },
+        { type:'text', text:`${estilo}\n\nGere ${qtd} questões ${topico} baseadas no conteúdo desta imagem (material de estudo). Retorne APENAS JSON válido: {"questoes":[{"enunciado":"...","opcoes":{"A":"...","B":"...","C":"...","D":"...","E":"..."},"gabarito":"A","explicacao":"..."}]}` }
+      ]}] };
+    } else if (conteudo?.tipo === 'pdf') {
+      return { messages: [{ role:'user', content: [
+        { type:'document', source:{ type:'base64', media_type:'application/pdf', data: conteudo.base64 } },
+        { type:'text', text:`${estilo}\n\nGere ${qtd} questões ${topico} baseadas no conteúdo deste PDF (material de estudo). Retorne APENAS JSON válido: {"questoes":[{"enunciado":"...","opcoes":{"A":"...","B":"...","C":"...","D":"...","E":"..."},"gabarito":"A","explicacao":"..."}]}` }
+      ]}] };
+    } else {
+      userContent = `${estilo}\n\nGere ${qtd} questões ${topico}. Retorne APENAS JSON válido: {"questoes":[{"enunciado":"...","opcoes":{"A":"...","B":"...","C":"...","D":"...","E":"..."},"gabarito":"A","explicacao":"..."}]}`;
+      return { messages: [{ role:'user', content: userContent }] };
+    }
+  }
+
   async function iniciarQuestoes() {
     const custom = parseInt(document.getElementById('q-custom').value);
     if (custom>0) qQtd = Math.min(custom, 20);
     const errEl  = document.getElementById('q-erro');
     if (!qMat) { errEl.style.display='block'; errEl.textContent='Selecione uma disciplina.'; return; }
     errEl.style.display = 'none';
-    const assunto = document.getElementById('q-assunto-input').value.trim();
+    const assunto  = document.getElementById('q-assunto-input').value.trim();
+    const conteudo = sessaoAtual?.conteudoExtra?.tipo ? sessaoAtual.conteudoExtra : null;
     document.getElementById('q-select').style.display  = 'none';
     document.getElementById('q-loading').style.display = 'block';
     try {
-      const qtdReal = Math.min(qQtd, 5);
-      const topico  = assunto ? `sobre o assunto "${assunto}" dentro de ${qMat}` : `sobre ${qMat}`;
-      const resp = await fetch('https://api.anthropic.com/v1/messages', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ model: AI_MODEL, max_tokens: 1000, messages: [{ role:'user', content:`Gere ${qtdReal} questões de múltipla escolha estilo concurso público brasileiro ${topico}. Retorne APENAS JSON válido sem texto extra: {"questoes":[{"enunciado":"...","opcoes":{"A":"...","B":"...","C":"...","D":"...","E":"..."},"gabarito":"A","explicacao":"..."}]}` }] }) });
+      const qtdReal  = Math.min(qQtd, 5);
+      const payload  = montarPromptCesgranrio(qtdReal, qMat, assunto, conteudo);
+      const resp = await fetch('https://api.anthropic.com/v1/messages', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ model: AI_MODEL, max_tokens: 2000, ...payload })
+      });
       const data = await resp.json();
       let text = data.content.map(c=>c.text||'').join('');
       text = text.replace(/```json|```/g,'').trim();
@@ -707,7 +1019,7 @@
       document.getElementById('q-loading').style.display = 'none';
       document.getElementById('q-quiz').style.display    = 'block';
       renderQuestao();
-    } catch(e) { document.getElementById('q-loading').style.display='none'; document.getElementById('q-select').style.display='block'; errEl.style.display='block'; errEl.textContent='Erro ao gerar questões. Tente novamente.'; }
+    } catch(e) { document.getElementById('q-loading').style.display='none'; document.getElementById('q-select').style.display='block'; errEl.style.display='block'; errEl.textContent='Erro ao gerar questões. Tente novamente.'; console.error(e); }
   }
 
   function renderQuestao() {
@@ -791,7 +1103,8 @@
       document.getElementById('rev-select').style.display  = 'none';
       document.getElementById('rev-loading').style.display = 'block';
       const qtdReal = Math.min(revQtd, 5);
-      const resp = await fetch('https://api.anthropic.com/v1/messages', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ model: AI_MODEL, max_tokens: 1000, messages: [{ role:'user', content:`Gere ${qtdReal} questões de revisão de concurso público para ${periodo}. Disciplinas: ${disciplinas.join(', ')}. ${promptAssunt} ${promptPerf?'Desempenho: '+promptPerf+'. Foque nas disciplinas com menor desempenho.':''} Distribua entre as disciplinas. Retorne APENAS JSON válido: {"questoes":[{"enunciado":"...","disciplina":"...","opcoes":{"A":"...","B":"...","C":"...","D":"...","E":"..."},"gabarito":"A","explicacao":"..."}]}` }] }) });
+      const estiloCesgranrio = `Você é um elaborador de questões da banca Cesgranrio. Estilo obrigatório: enunciados contextualizados com situações reais (bancárias, profissionais), texto introdutório com cenário, 5 alternativas plausíveis, linguagem formal, distratores elaborados. Nunca faça perguntas diretas simples.`;
+      const resp = await fetch('https://api.anthropic.com/v1/messages', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ model: AI_MODEL, max_tokens: 2000, messages: [{ role:'user', content:`${estiloCesgranrio}\n\nGere ${qtdReal} questões de revisão para ${periodo}. Disciplinas: ${disciplinas.join(', ')}. ${promptAssunt} ${promptPerf?'Desempenho atual: '+promptPerf+'. Priorize as disciplinas com menor desempenho.':''} Distribua as questões entre as disciplinas. Retorne APENAS JSON válido: {"questoes":[{"enunciado":"...","disciplina":"...","opcoes":{"A":"...","B":"...","C":"...","D":"...","E":"..."},"gabarito":"A","explicacao":"..."}]}` }] }) });
       const data = await resp.json();
       let text = data.content.map(c=>c.text||'').join('');
       text = text.replace(/```json|```/g,'').trim();
