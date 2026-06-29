@@ -1,0 +1,913 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ConcursoIA — Plataforma de Estudos</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/tabler-icons.min.css">
+  <style>
+    :root {
+      --font-sans: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      --surface-0: #f4f5f7;
+      --surface-1: #ffffff;
+      --surface-2: #f9fafb;
+      --text-primary: #111827;
+      --text-secondary: #6b7280;
+      --text-muted: #9ca3af;
+      --text-accent: #2563eb;
+      --text-success: #15803d;
+      --text-warning: #b45309;
+      --text-danger: #dc2626;
+      --border: #e5e7eb;
+      --border-strong: #d1d5db;
+      --border-accent: #93c5fd;
+      --border-success: #86efac;
+      --border-danger: #fca5a5;
+      --bg-accent: #eff6ff;
+      --bg-success: #f0fdf4;
+      --bg-warning: #fffbeb;
+      --bg-danger: #fef2f2;
+      --fill-accent: #2563eb;
+      --fill-accent-hover: #1d4ed8;
+      --fill-success: #16a34a;
+      --fill-warning: #d97706;
+      --fill-danger: #dc2626;
+      --on-accent: #ffffff;
+      --radius: 8px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: var(--font-sans); color: var(--text-primary); background: var(--surface-0); }
+
+    /* AUTH */
+    .auth-wrap { display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 20px; background: var(--surface-0); }
+    .auth-card { background: var(--surface-1); border: 1px solid var(--border); border-radius: 16px; padding: 32px; width: 100%; max-width: 380px; box-shadow: 0 4px 24px rgba(0,0,0,0.06); }
+    .auth-logo { text-align: center; margin-bottom: 24px; }
+    .auth-logo i { font-size: 36px; color: var(--text-accent); }
+    .auth-logo-title { font-size: 20px; font-weight: 600; margin-top: 8px; }
+    .auth-logo-sub { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
+    .auth-tabs { display: flex; margin-bottom: 24px; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+    .auth-tab { flex: 1; padding: 9px; text-align: center; font-size: 13px; cursor: pointer; color: var(--text-secondary); background: var(--surface-0); transition: all 0.15s; }
+    .auth-tab.active { background: var(--bg-accent); color: var(--text-accent); font-weight: 500; }
+    .form-group { margin-bottom: 14px; }
+    .form-label { font-size: 12px; color: var(--text-secondary); margin-bottom: 6px; display: block; font-weight: 500; }
+    .form-input { width: 100%; padding: 9px 12px; font-size: 13px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface-0); color: var(--text-primary); font-family: var(--font-sans); transition: border 0.15s; }
+    .form-input:focus { outline: none; border-color: var(--border-accent); background: var(--surface-1); }
+    .auth-btn { width: 100%; padding: 10px; background: var(--fill-accent); color: var(--on-accent); border: none; border-radius: var(--radius); font-size: 14px; font-weight: 500; cursor: pointer; font-family: var(--font-sans); margin-top: 4px; transition: background 0.15s; }
+    .auth-btn:hover { background: var(--fill-accent-hover); }
+    .auth-msg { font-size: 12px; margin-top: 10px; text-align: center; padding: 8px 12px; border-radius: var(--radius); display: none; }
+    .auth-msg.erro { background: var(--bg-danger); color: var(--text-danger); border: 1px solid var(--border-danger); display: block; }
+    .auth-msg.ok { background: var(--bg-success); color: var(--text-success); border: 1px solid var(--border-success); display: block; }
+
+    /* MAIN APP */
+    .main-app { display: flex; height: 100vh; overflow: hidden; }
+    .sidebar { width: 200px; min-width: 200px; background: var(--surface-1); border-right: 1px solid var(--border); padding: 16px 0; display: flex; flex-direction: column; gap: 2px; }
+    .sidebar-logo { padding: 0 16px 14px; font-size: 15px; font-weight: 600; color: var(--text-accent); border-bottom: 1px solid var(--border); margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+    .sidebar-user { padding: 6px 16px 12px; font-size: 11px; color: var(--text-muted); border-bottom: 1px solid var(--border); margin-bottom: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .nav-item { display: flex; align-items: center; gap: 10px; padding: 9px 16px; font-size: 13px; color: var(--text-secondary); cursor: pointer; transition: all 0.1s; }
+    .nav-item:hover { background: var(--surface-0); color: var(--text-primary); }
+    .nav-item.active { background: var(--bg-accent); color: var(--text-accent); font-weight: 500; }
+    .nav-item i { font-size: 17px; }
+    .nav-sair { margin-top: auto; border-top: 1px solid var(--border); padding-top: 8px; }
+    .main { flex: 1; overflow-y: auto; display: flex; flex-direction: column; min-width: 0; }
+    .topbar { padding: 13px 20px; border-bottom: 1px solid var(--border); background: var(--surface-1); display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+    .topbar-title { font-size: 15px; font-weight: 600; }
+    .streak-badge { display: flex; align-items: center; gap: 6px; background: var(--bg-warning); color: var(--text-warning); font-size: 12px; font-weight: 500; padding: 5px 12px; border-radius: 20px; }
+    .content { padding: 20px; flex: 1; }
+    .page { display: none; }
+    .page.active { display: block; }
+
+    /* CARDS & METRICS */
+    .metrics-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; margin-bottom: 20px; }
+    .metric-card { background: var(--surface-1); border-radius: 12px; padding: 14px; border: 1px solid var(--border); }
+    .metric-label { font-size: 11px; color: var(--text-secondary); margin-bottom: 6px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.4px; }
+    .metric-value { font-size: 22px; font-weight: 600; }
+    .metric-sub { font-size: 11px; color: var(--text-muted); margin-top: 3px; }
+    .cards-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+    .card { background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
+    .card-title { font-size: 13px; font-weight: 600; margin-bottom: 14px; }
+    .ai-box { background: var(--bg-accent); border: 1px solid var(--border-accent); border-radius: 12px; padding: 14px; margin-bottom: 20px; }
+    .ai-header { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--text-accent); margin-bottom: 10px; }
+    .ai-msg { font-size: 13px; color: var(--text-primary); line-height: 1.65; padding: 9px 12px; background: var(--surface-1); border-radius: 8px; margin-bottom: 6px; }
+    .ai-msg:last-child { margin-bottom: 0; }
+    .materia-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 9px; }
+    .materia-name { font-size: 12px; color: var(--text-secondary); width: 120px; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .bar-track { flex: 1; height: 7px; background: var(--surface-0); border-radius: 4px; overflow: hidden; }
+    .bar-fill { height: 100%; border-radius: 4px; transition: width 0.4s; }
+    .bar-pct { font-size: 12px; font-weight: 600; width: 36px; text-align: right; }
+
+    /* BUTTONS */
+    .btn { padding: 8px 18px; border-radius: var(--radius); border: 1px solid var(--border-strong); background: var(--surface-1); color: var(--text-primary); font-size: 13px; cursor: pointer; font-family: var(--font-sans); transition: all 0.1s; }
+    .btn:hover { background: var(--surface-0); }
+    .btn-primary { background: var(--fill-accent); border-color: var(--fill-accent); color: var(--on-accent); }
+    .btn-primary:hover { background: var(--fill-accent-hover); border-color: var(--fill-accent-hover); }
+    .btn-sm { padding: 5px 13px; font-size: 12px; }
+    .progress-bar { height: 7px; background: var(--surface-0); border-radius: 4px; overflow: hidden; margin: 14px 0; }
+    .progress-fill { height: 100%; border-radius: 4px; background: var(--fill-accent); transition: width 0.3s; }
+
+    /* TIMER */
+    .timer-wrap { text-align: center; padding: 16px 0; }
+    .timer-display { font-size: 52px; font-weight: 600; letter-spacing: 3px; font-variant-numeric: tabular-nums; margin-bottom: 14px; color: var(--text-primary); }
+    .timer-materia { font-size: 15px; color: var(--text-secondary); margin-bottom: 4px; font-weight: 500; }
+    .timer-assunto { font-size: 13px; color: var(--text-muted); margin-bottom: 20px; font-style: italic; }
+    .timer-meta { display: flex; justify-content: center; gap: 36px; margin-bottom: 24px; }
+    .timer-meta-item { text-align: center; }
+    .timer-meta-val { font-size: 20px; font-weight: 600; }
+    .timer-meta-lab { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+    .btn-row { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+
+    /* DISCIPLINAS */
+    .select-materia { display: grid; grid-template-columns: repeat(2,1fr); gap: 9px; margin-bottom: 16px; }
+    .mat-btn { padding: 11px 13px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface-0); cursor: pointer; font-size: 13px; color: var(--text-secondary); transition: all 0.1s; display: flex; align-items: center; gap: 9px; font-family: var(--font-sans); }
+    .mat-btn:hover { border-color: var(--border-accent); background: var(--bg-accent); color: var(--text-accent); }
+    .mat-btn.active { border-color: var(--border-accent); background: var(--bg-accent); color: var(--text-accent); font-weight: 500; }
+    .mat-btn i { font-size: 19px; flex-shrink: 0; }
+
+    /* QUESTÕES */
+    .questoes-wrap { max-width: 580px; }
+    .q-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+    .q-num { font-size: 12px; color: var(--text-muted); }
+    .q-enunciado { font-size: 14px; line-height: 1.75; padding: 14px; border-radius: 10px; background: var(--surface-0); margin-bottom: 16px; border: 1px solid var(--border); }
+    .opcao { display: flex; align-items: flex-start; gap: 11px; padding: 10px 13px; border: 1px solid var(--border); border-radius: 9px; margin-bottom: 8px; cursor: pointer; font-size: 13px; transition: all 0.1s; }
+    .opcao:hover { background: var(--surface-0); border-color: var(--border-strong); }
+    .opcao.correta { border-color: var(--border-success); background: var(--bg-success); color: var(--text-success); }
+    .opcao.errada { border-color: var(--border-danger); background: var(--bg-danger); color: var(--text-danger); }
+    .opcao-letra { font-weight: 600; flex-shrink: 0; min-width: 18px; }
+    .q-resultado { background: var(--surface-0); border-radius: 12px; padding: 14px; margin-top: 14px; border: 1px solid var(--border); }
+    .explicacao { font-size: 13px; line-height: 1.65; color: var(--text-secondary); }
+    .q-loading { text-align: center; padding: 50px; color: var(--text-muted); font-size: 14px; }
+    .section-title { font-size: 11px; font-weight: 600; color: var(--text-muted); margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.6px; }
+
+    /* HISTÓRICO */
+    .hist-row { display: flex; align-items: center; gap: 12px; padding: 11px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+    .hist-row:last-child { border-bottom: none; }
+    .hist-data { color: var(--text-muted); font-size: 11px; width: 76px; flex-shrink: 0; }
+    .hist-mat { flex: 1; }
+    .hist-assunto { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+    .hist-stats { display: flex; gap: 10px; font-size: 12px; flex-shrink: 0; }
+    .hist-acerto { color: var(--text-success); font-weight: 500; }
+    .hist-erro { color: var(--text-danger); font-weight: 500; }
+    .empty { text-align: center; padding: 40px; color: var(--text-muted); font-size: 13px; }
+    .loading-spin { text-align: center; padding: 32px; color: var(--text-muted); font-size: 13px; }
+
+    /* CRONOGRAMA */
+    .cron-day { padding: 13px 0; border-bottom: 1px solid var(--border); }
+    .cron-day:last-child { border-bottom: none; }
+    .cron-day-header { display: flex; align-items: center; gap: 10px; margin-bottom: 5px; }
+    .cron-dia-nome { font-size: 13px; font-weight: 600; width: 70px; flex-shrink: 0; }
+    .cron-mat { font-size: 13px; color: var(--text-secondary); flex: 1; }
+    .cron-badge { font-size: 11px; padding: 2px 9px; border-radius: 20px; flex-shrink: 0; font-weight: 500; }
+    .badge-hoje { background: var(--bg-accent); color: var(--text-accent); }
+    .badge-livre { background: var(--surface-0); color: var(--text-muted); border: 1px solid var(--border); }
+    .tag-ok { font-size: 11px; padding: 2px 9px; border-radius: 20px; background: var(--bg-success); color: var(--text-success); display: inline-flex; align-items: center; gap: 4px; font-weight: 500; }
+    .cron-reg { margin-top: 5px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .cron-assunto { font-size: 11px; color: var(--text-muted); }
+
+    /* REVISÃO */
+    .revisao-box { background: var(--surface-0); border-radius: 12px; padding: 14px; margin-bottom: 16px; border: 1px solid var(--border); }
+    .revisao-tag { font-size: 11px; padding: 2px 9px; border-radius: 20px; background: var(--bg-accent); color: var(--text-accent); display: inline-block; margin-bottom: 10px; font-weight: 500; }
+
+    /* CONFIG */
+    .settings-row { display: flex; align-items: center; justify-content: space-between; padding: 13px 0; border-bottom: 1px solid var(--border); gap: 12px; }
+    .settings-row:last-child { border-bottom: none; }
+    .settings-label { font-size: 13px; font-weight: 500; }
+    .settings-sub { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+    select, input[type=text], input[type=email], input[type=password], input[type=number] {
+      font-family: var(--font-sans); font-size: 13px; color: var(--text-primary);
+      background: var(--surface-0); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 7px 10px; transition: border 0.15s;
+    }
+    select:focus, input:focus { outline: none; border-color: var(--border-accent); }
+  </style>
+</head>
+<body>
+
+<!-- AUTH -->
+<div id="auth-screen" class="auth-wrap">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <i class="ti ti-school"></i>
+      <div class="auth-logo-title">ConcursoIA</div>
+      <div class="auth-logo-sub">Sua plataforma inteligente de estudos</div>
+    </div>
+    <div class="auth-tabs">
+      <div class="auth-tab active" id="tab-login" onclick="switchTab('login')">Entrar</div>
+      <div class="auth-tab" id="tab-cadastro" onclick="switchTab('cadastro')">Cadastrar</div>
+    </div>
+    <div id="form-login">
+      <div class="form-group"><label class="form-label">Email</label><input class="form-input" type="email" id="login-email" placeholder="seu@email.com"></div>
+      <div class="form-group"><label class="form-label">Senha</label><input class="form-input" type="password" id="login-senha" placeholder="••••••••" onkeydown="if(event.key==='Enter')fazerLogin()"></div>
+      <button class="auth-btn" onclick="fazerLogin()">Entrar</button>
+      <div id="login-msg" class="auth-msg"></div>
+    </div>
+    <div id="form-cadastro" style="display:none">
+      <div class="form-group"><label class="form-label">Nome</label><input class="form-input" type="text" id="cad-nome" placeholder="Seu nome"></div>
+      <div class="form-group"><label class="form-label">Email</label><input class="form-input" type="email" id="cad-email" placeholder="seu@email.com"></div>
+      <div class="form-group"><label class="form-label">Senha</label><input class="form-input" type="password" id="cad-senha" placeholder="mínimo 6 caracteres"></div>
+      <button class="auth-btn" onclick="fazerCadastro()">Criar conta</button>
+      <div id="cad-msg" class="auth-msg"></div>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="main-app" class="main-app" style="display:none">
+  <div class="sidebar">
+    <div class="sidebar-logo"><i class="ti ti-school"></i> ConcursoIA</div>
+    <div class="sidebar-user" id="sidebar-user"></div>
+    <div class="nav-item active" onclick="goTo('dashboard',this)"><i class="ti ti-layout-dashboard"></i> Dashboard</div>
+    <div class="nav-item" onclick="goTo('timer',this)"><i class="ti ti-clock"></i> Estudar agora</div>
+    <div class="nav-item" onclick="goTo('questoes',this)"><i class="ti ti-list-check"></i> Questões</div>
+    <div class="nav-item" onclick="goTo('revisao',this)"><i class="ti ti-refresh"></i> Revisão</div>
+    <div class="nav-item" onclick="goTo('cronograma',this)"><i class="ti ti-calendar"></i> Cronograma</div>
+    <div class="nav-item" onclick="goTo('historico',this)"><i class="ti ti-history"></i> Histórico</div>
+    <div class="nav-item" onclick="goTo('config',this)"><i class="ti ti-settings"></i> Configurações</div>
+    <div class="nav-sair"><div class="nav-item" onclick="fazerLogout()"><i class="ti ti-logout"></i> Sair</div></div>
+  </div>
+  <div class="main">
+    <div class="topbar">
+      <span class="topbar-title" id="page-title">Dashboard</span>
+      <div class="streak-badge"><i class="ti ti-flame"></i> <span id="streak-num">0</span> dias seguidos</div>
+    </div>
+    <div class="content">
+
+      <!-- DASHBOARD -->
+      <div class="page active" id="page-dashboard">
+        <div class="metrics-grid">
+          <div class="metric-card"><div class="metric-label">Tempo hoje</div><div class="metric-value" id="m-hoje">—</div><div class="metric-sub" id="m-meta-label">Meta: 1h</div></div>
+          <div class="metric-card"><div class="metric-label">Esta semana</div><div class="metric-value" id="m-semana">—</div><div class="metric-sub">acumulado</div></div>
+          <div class="metric-card"><div class="metric-label">Questões</div><div class="metric-value" id="m-questoes">—</div><div class="metric-sub" id="m-acertos-sub">— acertos</div></div>
+          <div class="metric-card"><div class="metric-label">Desempenho</div><div class="metric-value" id="m-desempenho">—</div><div class="metric-sub">% de acerto</div></div>
+        </div>
+        <div class="ai-box">
+          <div class="ai-header"><i class="ti ti-sparkles"></i> Análise da IA</div>
+          <div id="ai-msgs"><div class="ai-msg">Carregando análise...</div></div>
+        </div>
+        <div class="cards-row">
+          <div class="card"><div class="card-title">Desempenho por disciplina</div><div id="materias-bars"><div class="loading-spin">Carregando...</div></div></div>
+          <div class="card"><div class="card-title">Próxima disciplina</div><div id="proxima-materia" style="font-size:13px;color:var(--text-secondary)">—</div></div>
+        </div>
+      </div>
+
+      <!-- TIMER -->
+      <div class="page" id="page-timer">
+        <div class="card" style="max-width:480px;margin:0 auto">
+          <div id="timer-step1">
+            <div class="card-title">O que você vai estudar hoje?</div>
+            <div class="section-title" style="margin-top:8px">Disciplina</div>
+            <div class="select-materia" id="disciplinas-timer"></div>
+            <div class="section-title">Assunto específico</div>
+            <input type="text" id="input-assunto" placeholder="Ex: Concordância verbal, Juros simples..." style="width:100%;margin-bottom:14px">
+            <button class="btn btn-primary" onclick="iniciarTimer()" style="width:100%">Iniciar estudo</button>
+            <div id="timer-err" style="color:var(--text-danger);font-size:12px;margin-top:8px;display:none"></div>
+          </div>
+          <div id="timer-step2" style="display:none">
+            <div class="timer-wrap">
+              <div class="timer-materia" id="timer-mat-nome"></div>
+              <div class="timer-assunto" id="timer-assunto-nome"></div>
+              <div class="timer-display" id="timer-display">00:00:00</div>
+              <div class="progress-bar"><div class="progress-fill" id="timer-progress" style="width:0%"></div></div>
+              <div class="timer-meta">
+                <div class="timer-meta-item"><div class="timer-meta-val" id="timer-meta-label">1h</div><div class="timer-meta-lab">meta</div></div>
+                <div class="timer-meta-item"><div class="timer-meta-val" id="timer-pct">0%</div><div class="timer-meta-lab">concluído</div></div>
+              </div>
+              <div class="btn-row">
+                <button class="btn" id="btn-pausar" onclick="pausarTimer()">Pausar</button>
+                <button class="btn btn-primary" onclick="finalizarEstudo()">Finalizar estudo</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- QUESTÕES -->
+      <div class="page" id="page-questoes">
+        <div class="questoes-wrap">
+          <div id="q-select">
+            <div class="card-title" style="margin-bottom:14px">Praticar questões</div>
+            <div id="q-sessao-box" class="ai-box" style="display:none;margin-bottom:14px">
+              <div class="ai-header"><i class="ti ti-bolt"></i> Baseado no seu estudo de hoje</div>
+              <div id="q-sessao-info" style="font-size:13px"></div>
+              <button class="btn btn-primary btn-sm" style="margin-top:10px" onclick="usarSessaoAtual()">Usar disciplina e assunto de hoje ↗</button>
+            </div>
+            <div class="section-title">Disciplina</div>
+            <div class="select-materia" id="disciplinas-questoes" style="margin-bottom:14px"></div>
+            <div class="section-title">Assunto <span style="color:var(--text-muted);font-weight:400;text-transform:none;letter-spacing:0">(opcional)</span></div>
+            <input type="text" id="q-assunto-input" placeholder="Ex: Concordância nominal, Planilhas..." style="width:100%;margin-bottom:14px">
+            <div class="section-title">Quantidade</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">
+              <button class="btn btn-sm" onclick="setQQtd(5,this)">5</button>
+              <button class="btn btn-sm" onclick="setQQtd(10,this)">10</button>
+              <button class="btn btn-sm" onclick="setQQtd(20,this)">20</button>
+              <button class="btn btn-sm" onclick="setQQtd(30,this)">30</button>
+              <input type="number" id="q-custom" placeholder="Outro" min="1" max="50" style="width:80px">
+            </div>
+            <button class="btn btn-primary" onclick="iniciarQuestoes()">Gerar questões com IA ↗</button>
+            <div id="q-erro" style="color:var(--text-danger);font-size:12px;margin-top:8px;display:none"></div>
+          </div>
+          <div id="q-loading" style="display:none" class="q-loading"><i class="ti ti-loader-2" style="font-size:30px;display:block;margin-bottom:12px"></i>Gerando questões com IA...</div>
+          <div id="q-quiz" style="display:none">
+            <div class="q-header"><span id="q-counter" class="q-num"></span><span id="q-mat-label" style="font-size:12px;color:var(--text-muted)"></span></div>
+            <div class="progress-bar"><div class="progress-fill" id="q-progress" style="width:0%"></div></div>
+            <div id="q-enunciado" class="q-enunciado"></div>
+            <div id="q-opcoes"></div>
+            <div id="q-resultado" class="q-resultado" style="display:none">
+              <div style="font-size:13px;font-weight:600;margin-bottom:6px" id="q-res-title"></div>
+              <div class="explicacao" id="q-explicacao"></div>
+              <button class="btn btn-primary btn-sm" style="margin-top:12px" onclick="proximaQuestao()">Próxima →</button>
+            </div>
+          </div>
+          <div id="q-final" style="display:none">
+            <div class="card-title" style="margin-bottom:14px">Resultado final</div>
+            <div class="metrics-grid" style="grid-template-columns:repeat(2,1fr);margin-bottom:16px">
+              <div class="metric-card"><div class="metric-label">Acertos</div><div class="metric-value" id="fin-acertos" style="color:var(--text-success)">0</div></div>
+              <div class="metric-card"><div class="metric-label">Erros</div><div class="metric-value" id="fin-erros" style="color:var(--text-danger)">0</div></div>
+              <div class="metric-card"><div class="metric-label">Desempenho</div><div class="metric-value" id="fin-pct">0%</div></div>
+              <div class="metric-card"><div class="metric-label">Total</div><div class="metric-value" id="fin-total">0</div></div>
+            </div>
+            <div id="fin-ai-msg" class="ai-box" style="margin-bottom:16px"></div>
+            <button class="btn btn-primary" onclick="voltarSelect()">Praticar novamente</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- REVISÃO -->
+      <div class="page" id="page-revisao">
+        <div style="max-width:580px">
+          <div id="rev-select">
+            <div class="card-title" style="margin-bottom:14px">Revisão inteligente</div>
+            <div class="ai-box" style="margin-bottom:16px">
+              <div class="ai-header"><i class="ti ti-sparkles"></i> Como funciona</div>
+              <div class="ai-msg">A IA distribui as questões entre todos os assuntos que você estudou no período, priorizando disciplinas com menor desempenho.</div>
+            </div>
+            <div class="section-title">Período</div>
+            <div style="display:flex;gap:8px;margin-bottom:16px">
+              <button class="btn btn-sm" id="rev-semana-btn" onclick="setRevPeriodo('semana',this)" style="font-weight:600">Esta semana</button>
+              <button class="btn btn-sm" id="rev-mes-btn" onclick="setRevPeriodo('mes',this)">Este mês</button>
+            </div>
+            <div class="section-title">Quantidade de questões</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">
+              <button class="btn btn-sm" onclick="setRevQtd(20,this)">20</button>
+              <button class="btn btn-sm" onclick="setRevQtd(50,this)">50</button>
+              <button class="btn btn-sm" onclick="setRevQtd(100,this)">100</button>
+              <input type="number" id="rev-custom" placeholder="Outro" min="1" max="200" style="width:80px">
+            </div>
+            <div id="rev-preview" class="revisao-box" style="display:none">
+              <div class="revisao-tag">Disciplinas do período</div>
+              <div id="rev-preview-content" style="font-size:13px;color:var(--text-secondary)"></div>
+            </div>
+            <button class="btn btn-primary" onclick="iniciarRevisao()" style="margin-top:8px">Gerar revisão com IA ↗</button>
+            <div id="rev-erro" style="color:var(--text-danger);font-size:12px;margin-top:8px;display:none"></div>
+          </div>
+          <div id="rev-loading" style="display:none" class="q-loading"><i class="ti ti-loader-2" style="font-size:30px;display:block;margin-bottom:12px"></i>Gerando revisão personalizada...</div>
+          <div id="rev-quiz" style="display:none">
+            <div class="q-header"><span id="rev-counter" class="q-num"></span><span id="rev-mat-label" style="font-size:12px;color:var(--text-muted)"></span></div>
+            <div class="progress-bar"><div class="progress-fill" id="rev-progress" style="width:0%"></div></div>
+            <div id="rev-enunciado" class="q-enunciado"></div>
+            <div id="rev-opcoes"></div>
+            <div id="rev-resultado" class="q-resultado" style="display:none">
+              <div style="font-size:13px;font-weight:600;margin-bottom:6px" id="rev-res-title"></div>
+              <div class="explicacao" id="rev-explicacao"></div>
+              <button class="btn btn-primary btn-sm" style="margin-top:12px" onclick="proximaRevisao()">Próxima →</button>
+            </div>
+          </div>
+          <div id="rev-final" style="display:none">
+            <div class="card-title" style="margin-bottom:14px">Resultado da revisão</div>
+            <div class="metrics-grid" style="grid-template-columns:repeat(2,1fr);margin-bottom:16px">
+              <div class="metric-card"><div class="metric-label">Acertos</div><div class="metric-value" id="revfin-acertos" style="color:var(--text-success)">0</div></div>
+              <div class="metric-card"><div class="metric-label">Erros</div><div class="metric-value" id="revfin-erros" style="color:var(--text-danger)">0</div></div>
+              <div class="metric-card"><div class="metric-label">Desempenho</div><div class="metric-value" id="revfin-pct">0%</div></div>
+              <div class="metric-card"><div class="metric-label">Total</div><div class="metric-value" id="revfin-total">0</div></div>
+            </div>
+            <div id="revfin-ai" class="ai-box" style="margin-bottom:16px"></div>
+            <button class="btn btn-primary" onclick="voltarRevisao()">Nova revisão</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- CRONOGRAMA -->
+      <div class="page" id="page-cronograma">
+        <div class="card" style="max-width:520px"><div class="card-title">Cronograma semanal</div><div id="cronograma-list"><div class="loading-spin">Carregando...</div></div></div>
+      </div>
+
+      <!-- HISTÓRICO -->
+      <div class="page" id="page-historico">
+        <div class="card" style="max-width:600px"><div class="card-title">Histórico de estudos</div><div id="historico-list"><div class="loading-spin">Carregando...</div></div></div>
+      </div>
+
+      <!-- CONFIG -->
+      <div class="page" id="page-config">
+        <div class="card" style="max-width:480px">
+          <div class="card-title">Configurações</div>
+          <div class="settings-row">
+            <div><div class="settings-label">Meta diária de estudo</div><div class="settings-sub">Tempo alvo por dia</div></div>
+            <select id="cfg-meta" onchange="salvarMeta()">
+              <option value="1800">30 min</option>
+              <option value="3600" selected>1 hora</option>
+              <option value="5400">1h 30min</option>
+              <option value="7200">2 horas</option>
+              <option value="9000">2h 30min</option>
+              <option value="10800">3 horas</option>
+            </select>
+          </div>
+          <div class="settings-row"><div><div class="settings-label">Cronograma semanal</div><div class="settings-sub">Edite a disciplina de cada dia</div></div></div>
+          <div id="cfg-cronograma"></div>
+          <div style="margin-top:16px"><button class="btn btn-primary" onclick="salvarCronograma()">Salvar cronograma</button></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+  // ─── CONFIG ───────────────────────────────────────────────
+  const SUPA_URL = 'https://wkyqlhdxbqssqrcbivtw.supabase.co';
+  const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndreXFsaGR4YnFzc3FyY2JpdnR3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI2NzQxOTksImV4cCI6MjA5ODI1MDE5OX0.iBTFmCRZieQ3gnf6tTFyowAUNosE5jYqoUQBv6746Zo';
+  const AI_MODEL = 'claude-sonnet-4-6';
+
+  const DISCIPLINAS = [
+    { nome: 'Conhecimentos Bancários', icon: 'ti-building-bank' },
+    { nome: 'Vendas e Negociação',     icon: 'ti-chart-line' },
+    { nome: 'Informática',             icon: 'ti-device-laptop' },
+    { nome: 'Português',               icon: 'ti-abc' },
+  ];
+  const DIAS_SEMANA = ['Segunda','Terça','Quarta','Quinta','Sexta','Sábado','Domingo'];
+  const DIAS_JS     = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
+
+  // ─── STATE ────────────────────────────────────────────────
+  let currentUser  = null;
+  let sessaoAtual  = null;
+  let userMeta     = {
+    metaSec: 3600,
+    cronograma: { Segunda:'Conhecimentos Bancários', Terça:'Vendas e Negociação', Quarta:'Informática', Quinta:'Português', Sexta:'Revisão e Questões', Sábado:'Livre', Domingo:'Livre' }
+  };
+
+  let timerInterval = null, timerSec = 0, timerPaused = false, timerMat = '', timerAssunto = '';
+  let qMat = '', qQtd = 5, questoesList = [], qAtual = 0, qAcertos = 0, qErros = 0, qRespondida = false;
+  let revPeriodo = 'semana', revQtd = 20, revList = [], revAtual = 0, revAcertos = 0, revErros = 0, revRespondida = false;
+
+  // ─── SUPABASE ─────────────────────────────────────────────
+  async function supa(path, opts = {}) {
+    const token = currentUser?.access_token || SUPA_KEY;
+    const res = await fetch(SUPA_URL + path, {
+      headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json', 'Prefer': 'return=representation', ...(opts.headers||{}) },
+      ...opts
+    });
+    if (!res.ok && res.status !== 204) { const e = await res.json().catch(()=>({})); throw new Error(e.message || res.status); }
+    if (res.status === 204) return null;
+    return res.json();
+  }
+
+  async function supaAuth(path, body) {
+    const res = await fetch(SUPA_URL + '/auth/v1' + path, {
+      method: 'POST',
+      headers: { 'apikey': SUPA_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error_description || data.msg || 'Erro de autenticação');
+    return data;
+  }
+
+  // ─── AUTH ─────────────────────────────────────────────────
+  function switchTab(tab) {
+    document.getElementById('tab-login').classList.toggle('active', tab === 'login');
+    document.getElementById('tab-cadastro').classList.toggle('active', tab === 'cadastro');
+    document.getElementById('form-login').style.display    = tab === 'login'    ? 'block' : 'none';
+    document.getElementById('form-cadastro').style.display = tab === 'cadastro' ? 'block' : 'none';
+  }
+
+  async function fazerLogin() {
+    const email = document.getElementById('login-email').value.trim();
+    const senha = document.getElementById('login-senha').value;
+    const msg   = document.getElementById('login-msg');
+    msg.className = 'auth-msg'; msg.style.display = 'none';
+    try {
+      const data = await supaAuth('/token?grant_type=password', { email, password: senha });
+      currentUser = data;
+      entrarNoApp(data.user?.email || email);
+    } catch(e) { msg.textContent = 'Email ou senha incorretos.'; msg.className = 'auth-msg erro'; }
+  }
+
+  async function fazerCadastro() {
+    const nome  = document.getElementById('cad-nome').value.trim();
+    const email = document.getElementById('cad-email').value.trim();
+    const senha = document.getElementById('cad-senha').value;
+    const msg   = document.getElementById('cad-msg');
+    msg.className = 'auth-msg'; msg.style.display = 'none';
+    if (!nome || !email || senha.length < 6) { msg.textContent = 'Preencha todos os campos (senha mínimo 6 caracteres).'; msg.className = 'auth-msg erro'; return; }
+    try {
+      await supaAuth('/signup', { email, password: senha, data: { nome } });
+      msg.textContent = '✓ Conta criada! Verifique seu email para confirmar e depois entre.'; msg.className = 'auth-msg ok';
+    } catch(e) { msg.textContent = e.message; msg.className = 'auth-msg erro'; }
+  }
+
+  function fazerLogout() {
+    currentUser = null; sessaoAtual = null;
+    document.getElementById('main-app').style.display   = 'none';
+    document.getElementById('auth-screen').style.display = 'flex';
+  }
+
+  function entrarNoApp(email) {
+    document.getElementById('auth-screen').style.display = 'none';
+    document.getElementById('main-app').style.display   = 'flex';
+    document.getElementById('sidebar-user').textContent = email;
+    buildDisciplinas();
+    carregarConfig();
+    renderDashboard();
+  }
+
+  // ─── NAVEGAÇÃO ────────────────────────────────────────────
+  function goTo(page, el) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    document.getElementById('page-' + page).classList.add('active');
+    if (el) el.classList.add('active');
+    const titles = { dashboard:'Dashboard', timer:'Estudar agora', questoes:'Questões', revisao:'Revisão', cronograma:'Cronograma', historico:'Histórico', config:'Configurações' };
+    document.getElementById('page-title').textContent = titles[page] || page;
+    if (page === 'dashboard')  renderDashboard();
+    if (page === 'cronograma') renderCronograma();
+    if (page === 'historico')  renderHistorico();
+    if (page === 'config')     renderConfig();
+    if (page === 'questoes')   checkSessaoAtual();
+    if (page === 'revisao')  { resetRevSelect(); carregarPreviewRevisao(); }
+  }
+
+  // ─── HELPERS ──────────────────────────────────────────────
+  function fmtTime(s) { return Math.floor(s/3600) + 'h ' + String(Math.floor((s%3600)/60)).padStart(2,'0') + 'min'; }
+  function getPeriodoInicio() {
+    if (revPeriodo === 'semana') { const d = new Date(); d.setDate(d.getDate() - d.getDay() + 1); return d.toISOString().slice(0,10); }
+    const d = new Date(); d.setDate(1); return d.toISOString().slice(0,10);
+  }
+
+  // ─── DISCIPLINAS ──────────────────────────────────────────
+  function buildDisciplinas() {
+    ['timer','questoes'].forEach(ctx => {
+      const c = document.getElementById('disciplinas-' + ctx);
+      c.innerHTML = '';
+      DISCIPLINAS.forEach(d => {
+        const el = document.createElement('div');
+        el.className = 'mat-btn';
+        el.innerHTML = `<i class="ti ${d.icon}"></i>${d.nome}`;
+        el.onclick = () => {
+          c.querySelectorAll('.mat-btn').forEach(b => b.classList.remove('active'));
+          el.classList.add('active');
+          if (ctx === 'timer') timerMat = d.nome; else qMat = d.nome;
+        };
+        c.appendChild(el);
+      });
+    });
+  }
+
+  // ─── DASHBOARD ────────────────────────────────────────────
+  async function renderDashboard() {
+    document.getElementById('streak-num').textContent = '...';
+    try {
+      const hoje   = new Date().toISOString().slice(0,10);
+      const semIni = (() => { const d=new Date(); d.setDate(d.getDate()-d.getDay()+1); return d.toISOString().slice(0,10); })();
+      const [sesHoje, sesSem, qTodos] = await Promise.all([
+        supa(`/rest/v1/sessoes_estudo?select=tempo_segundos,streak&criado_em=gte.${hoje}T00:00:00&order=criado_em.desc`),
+        supa(`/rest/v1/sessoes_estudo?select=tempo_segundos&criado_em=gte.${semIni}T00:00:00`),
+        supa(`/rest/v1/questoes_resultado?select=disciplina,total,acertos`)
+      ]);
+      const tempoHoje = (sesHoje||[]).reduce((a,s)=>a+s.tempo_segundos, 0);
+      const tempoSem  = (sesSem||[]).reduce((a,s)=>a+s.tempo_segundos, 0);
+      const streak    = sesHoje?.[0]?.streak || 0;
+      const totQ = (qTodos||[]).reduce((a,q)=>a+q.total, 0);
+      const totA = (qTodos||[]).reduce((a,q)=>a+q.acertos, 0);
+      const pct  = totQ > 0 ? Math.round(totA/totQ*100) : null;
+
+      document.getElementById('streak-num').textContent    = streak;
+      document.getElementById('m-hoje').textContent        = fmtTime(tempoHoje);
+      document.getElementById('m-semana').textContent      = fmtTime(tempoSem);
+      document.getElementById('m-questoes').textContent    = totQ;
+      document.getElementById('m-acertos-sub').textContent = totA + ' acertos';
+      document.getElementById('m-desempenho').textContent  = pct !== null ? pct + '%' : '—';
+      const metaMin = Math.round(userMeta.metaSec/60);
+      document.getElementById('m-meta-label').textContent  = 'Meta: ' + (metaMin>=60 ? Math.floor(metaMin/60)+'h'+(metaMin%60?String(metaMin%60).padStart(2,'0')+'min':'') : metaMin+'min');
+
+      const porDisc = {};
+      (qTodos||[]).forEach(q => { if(!porDisc[q.disciplina]) porDisc[q.disciplina]={total:0,acertos:0}; porDisc[q.disciplina].total+=q.total; porDisc[q.disciplina].acertos+=q.acertos; });
+      const mats = Object.entries(porDisc).sort((a,b)=>(b[1].acertos/b[1].total)-(a[1].acertos/a[1].total));
+      document.getElementById('materias-bars').innerHTML = mats.length === 0
+        ? '<div class="empty" style="padding:20px 0">Nenhuma questão ainda.</div>'
+        : mats.map(([mat,d]) => { const p=Math.round(d.acertos/d.total*100); const clr=p>=70?'var(--fill-success)':p>=50?'var(--fill-warning)':'var(--fill-danger)'; return `<div class="materia-bar"><div class="materia-name">${mat.split(' ')[0]}</div><div class="bar-track"><div class="bar-fill" style="width:${p}%;background:${clr}"></div></div><div class="bar-pct" style="color:${clr}">${p}%</div></div>`; }).join('');
+
+      const diaHoje = DIAS_JS[new Date().getDay()];
+      const proxima = userMeta.cronograma[diaHoje] || '—';
+      document.getElementById('proxima-materia').innerHTML = `<div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px">${diaHoje}</div><div style="font-size:17px;font-weight:600">${proxima}</div>`;
+
+      const aiMsgs = [];
+      if (totQ===0 && tempoSem===0) aiMsgs.push('Bem-vindo! Inicie seu primeiro estudo para receber análises personalizadas.');
+      else {
+        if (streak>0) aiMsgs.push(`<strong>${streak} dia${streak>1?'s':''}</strong> seguido${streak>1?'s':''} de estudo. Continue assim!`);
+        if (pct!==null && pct>=75) aiMsgs.push('Desempenho geral ótimo (' + pct + '%). Mantenha o ritmo!');
+        if (pct!==null && pct<55)  aiMsgs.push('Desempenho em ' + pct + '%. Recomendo fazer uma revisão antes de avançar.');
+        if (mats.length>0) { const fraca=mats[mats.length-1]; const fp=Math.round(fraca[1].acertos/fraca[1].total*100); if(fp<65) aiMsgs.push(`Desempenho em <strong>${fraca[0]}</strong> está em ${fp}%. Use a Revisão para praticar essa disciplina.`); }
+      }
+      document.getElementById('ai-msgs').innerHTML = aiMsgs.map(m=>`<div class="ai-msg">${m}</div>`).join('');
+    } catch(e) { console.error(e); }
+  }
+
+  // ─── TIMER ────────────────────────────────────────────────
+  function iniciarTimer() {
+    const assunto = document.getElementById('input-assunto').value.trim();
+    const errEl   = document.getElementById('timer-err');
+    if (!timerMat) { errEl.style.display='block'; errEl.textContent='Selecione uma disciplina.'; return; }
+    errEl.style.display = 'none';
+    timerAssunto = assunto;
+    document.getElementById('timer-step1').style.display = 'none';
+    document.getElementById('timer-step2').style.display = 'block';
+    document.getElementById('timer-mat-nome').textContent    = timerMat;
+    document.getElementById('timer-assunto-nome').textContent = assunto ? 'Assunto: ' + assunto : '';
+    const ms = userMeta.metaSec;
+    document.getElementById('timer-meta-label').textContent = ms>=3600 ? Math.floor(ms/3600)+'h'+(ms%3600?String(Math.floor((ms%3600)/60)).padStart(2,'0')+'min':'') : Math.floor(ms/60)+'min';
+    timerSec = 0; timerPaused = false;
+    clearInterval(timerInterval);
+    timerInterval = setInterval(tickTimer, 1000);
+  }
+
+  function tickTimer() {
+    if (timerPaused) return;
+    timerSec++;
+    const h=Math.floor(timerSec/3600), m=Math.floor((timerSec%3600)/60), s=timerSec%60;
+    document.getElementById('timer-display').textContent = String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
+    const p = Math.min(100, Math.round(timerSec/userMeta.metaSec*100));
+    document.getElementById('timer-progress').style.width = p + '%';
+    document.getElementById('timer-pct').textContent = p + '%';
+  }
+
+  function pausarTimer() { timerPaused=!timerPaused; document.getElementById('btn-pausar').textContent=timerPaused?'Retomar':'Pausar'; }
+
+  async function finalizarEstudo() {
+    clearInterval(timerInterval);
+    const streak = await calcularStreak();
+    try { await supa('/rest/v1/sessoes_estudo', { method:'POST', body: JSON.stringify({ user_id: currentUser.user.id, disciplina: timerMat, assunto: timerAssunto||null, tempo_segundos: timerSec, streak }) }); }
+    catch(e) { console.error('Erro ao salvar sessão:', e); }
+    sessaoAtual = { materia: timerMat, assunto: timerAssunto };
+    const h=Math.floor(timerSec/3600), m=Math.floor((timerSec%3600)/60);
+    document.getElementById('timer-step2').style.display = 'none';
+    document.getElementById('timer-step1').style.display = 'block';
+    timerMat = '';
+    document.querySelectorAll('#disciplinas-timer .mat-btn').forEach(b=>b.classList.remove('active'));
+    document.getElementById('input-assunto').value = '';
+    alert(`Estudo registrado!\n\nDisciplina: ${sessaoAtual.materia}\nAssunto: ${sessaoAtual.assunto||'—'}\nTempo: ${h}h ${String(m).padStart(2,'0')}min\n\nVá para "Questões" para praticar!`);
+  }
+
+  async function calcularStreak() {
+    try {
+      const ontem = new Date(); ontem.setDate(ontem.getDate()-1);
+      const ontemStr = ontem.toISOString().slice(0,10);
+      const res = await supa(`/rest/v1/sessoes_estudo?select=streak,criado_em&order=criado_em.desc&limit=1`);
+      const ultima = res?.[0];
+      if (!ultima) return 1;
+      const dataUltima = ultima.criado_em.slice(0,10);
+      if (dataUltima === ontemStr) return (ultima.streak||0)+1;
+      if (dataUltima === new Date().toISOString().slice(0,10)) return ultima.streak||1;
+      return 1;
+    } catch(e) { return 1; }
+  }
+
+  // ─── QUESTÕES ─────────────────────────────────────────────
+  function checkSessaoAtual() {
+    const box = document.getElementById('q-sessao-box');
+    if (sessaoAtual) { box.style.display='block'; document.getElementById('q-sessao-info').textContent = sessaoAtual.materia+(sessaoAtual.assunto?' — '+sessaoAtual.assunto:''); }
+    else box.style.display = 'none';
+  }
+
+  function usarSessaoAtual() {
+    if (!sessaoAtual) return;
+    qMat = sessaoAtual.materia;
+    document.querySelectorAll('#disciplinas-questoes .mat-btn').forEach(b => { b.classList.remove('active'); if(b.textContent.includes(qMat.split(' ')[0])) b.classList.add('active'); });
+    document.getElementById('q-assunto-input').value = sessaoAtual.assunto||'';
+  }
+
+  function setQQtd(n,el) { qQtd=n; document.getElementById('q-custom').value=''; document.querySelectorAll('#q-select .btn-sm').forEach(b=>b.style.fontWeight='400'); if(el)el.style.fontWeight='600'; }
+
+  async function iniciarQuestoes() {
+    const custom = parseInt(document.getElementById('q-custom').value);
+    if (custom>0) qQtd = Math.min(custom, 20);
+    const errEl  = document.getElementById('q-erro');
+    if (!qMat) { errEl.style.display='block'; errEl.textContent='Selecione uma disciplina.'; return; }
+    errEl.style.display = 'none';
+    const assunto = document.getElementById('q-assunto-input').value.trim();
+    document.getElementById('q-select').style.display  = 'none';
+    document.getElementById('q-loading').style.display = 'block';
+    try {
+      const qtdReal = Math.min(qQtd, 5);
+      const topico  = assunto ? `sobre o assunto "${assunto}" dentro de ${qMat}` : `sobre ${qMat}`;
+      const resp = await fetch('https://api.anthropic.com/v1/messages', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ model: AI_MODEL, max_tokens: 1000, messages: [{ role:'user', content:`Gere ${qtdReal} questões de múltipla escolha estilo concurso público brasileiro ${topico}. Retorne APENAS JSON válido sem texto extra: {"questoes":[{"enunciado":"...","opcoes":{"A":"...","B":"...","C":"...","D":"...","E":"..."},"gabarito":"A","explicacao":"..."}]}` }] }) });
+      const data = await resp.json();
+      let text = data.content.map(c=>c.text||'').join('');
+      text = text.replace(/```json|```/g,'').trim();
+      const idx = text.indexOf('{'); if(idx>0) text=text.slice(idx);
+      questoesList = JSON.parse(text).questoes;
+      qAtual=0; qAcertos=0; qErros=0;
+      document.getElementById('q-loading').style.display = 'none';
+      document.getElementById('q-quiz').style.display    = 'block';
+      renderQuestao();
+    } catch(e) { document.getElementById('q-loading').style.display='none'; document.getElementById('q-select').style.display='block'; errEl.style.display='block'; errEl.textContent='Erro ao gerar questões. Tente novamente.'; }
+  }
+
+  function renderQuestao() {
+    qRespondida = false;
+    const q = questoesList[qAtual];
+    document.getElementById('q-resultado').style.display = 'none';
+    document.getElementById('q-counter').textContent = `Questão ${qAtual+1} de ${questoesList.length}`;
+    document.getElementById('q-mat-label').textContent = qMat;
+    document.getElementById('q-progress').style.width = (qAtual/questoesList.length*100) + '%';
+    document.getElementById('q-enunciado').textContent = q.enunciado;
+    document.getElementById('q-opcoes').innerHTML = Object.entries(q.opcoes).map(([l,t])=>`<div class="opcao" id="opt-${l}" onclick="responder('${l}')"><span class="opcao-letra">${l}</span><span>${t}</span></div>`).join('');
+  }
+
+  function responder(letra) {
+    if (qRespondida) return; qRespondida = true;
+    const q = questoesList[qAtual]; const acertou = letra === q.gabarito;
+    if (acertou) qAcertos++; else qErros++;
+    document.querySelectorAll('#q-opcoes .opcao').forEach(el=>el.style.pointerEvents='none');
+    document.getElementById('opt-'+letra).classList.add(acertou?'correta':'errada');
+    if (!acertou) document.getElementById('opt-'+q.gabarito).classList.add('correta');
+    document.getElementById('q-res-title').textContent = acertou ? '✓ Correto!' : '✗ Incorreto — gabarito: '+q.gabarito;
+    document.getElementById('q-res-title').style.color = acertou ? 'var(--text-success)' : 'var(--text-danger)';
+    document.getElementById('q-explicacao').textContent = q.explicacao;
+    document.getElementById('q-resultado').style.display = 'block';
+  }
+
+  function proximaQuestao() { qAtual++; if(qAtual>=questoesList.length) finalizarQuestoes(); else renderQuestao(); }
+
+  async function finalizarQuestoes() {
+    document.getElementById('q-quiz').style.display  = 'none';
+    document.getElementById('q-final').style.display = 'block';
+    const total = questoesList.length, pct = Math.round(qAcertos/total*100);
+    document.getElementById('fin-acertos').textContent = qAcertos;
+    document.getElementById('fin-erros').textContent   = qErros;
+    document.getElementById('fin-pct').textContent     = pct + '%';
+    document.getElementById('fin-total').textContent   = total;
+    try { await supa('/rest/v1/questoes_resultado', { method:'POST', body: JSON.stringify({ user_id: currentUser.user.id, disciplina: qMat, assunto: document.getElementById('q-assunto-input').value.trim()||null, total, acertos: qAcertos, erros: qErros }) }); } catch(e) { console.error(e); }
+    const aiTxt = pct>=80 ? `Excelente! ${pct}% de acerto. Continue!` : pct>=60 ? `${pct}% de acerto. Revise os erros para melhorar.` : `${pct}% de acerto. Recomendo rever o conteúdo antes de continuar.`;
+    document.getElementById('fin-ai-msg').innerHTML = `<div class="ai-header"><i class="ti ti-sparkles"></i> Análise da IA</div><div class="ai-msg">${aiTxt}</div>`;
+  }
+
+  function voltarSelect() { document.getElementById('q-final').style.display='none'; document.getElementById('q-select').style.display='block'; document.querySelectorAll('#disciplinas-questoes .mat-btn').forEach(b=>b.classList.remove('active')); qMat=''; }
+
+  // ─── REVISÃO ──────────────────────────────────────────────
+  function setRevPeriodo(p,el) { revPeriodo=p; document.getElementById('rev-semana-btn').style.fontWeight=p==='semana'?'600':'400'; document.getElementById('rev-mes-btn').style.fontWeight=p==='mes'?'600':'400'; carregarPreviewRevisao(); }
+  function setRevQtd(n,el) { revQtd=n; document.getElementById('rev-custom').value=''; document.querySelectorAll('#rev-select .btn-sm').forEach(b=>b.style.fontWeight='400'); if(el)el.style.fontWeight='600'; }
+
+  async function carregarPreviewRevisao() {
+    try {
+      const ini = getPeriodoInicio();
+      const sessoes = await supa(`/rest/v1/sessoes_estudo?select=disciplina,assunto&criado_em=gte.${ini}T00:00:00&order=criado_em.desc`);
+      const preview = document.getElementById('rev-preview');
+      if (!sessoes || sessoes.length===0) { preview.style.display='none'; return; }
+      const contagem = {};
+      sessoes.forEach(s => { if(!contagem[s.disciplina]) contagem[s.disciplina]=0; contagem[s.disciplina]++; });
+      const total = Object.values(contagem).reduce((a,b)=>a+b,0);
+      document.getElementById('rev-preview-content').innerHTML = Object.entries(contagem).map(([d,c])=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border)"><span>${d}</span><span style="color:var(--text-muted)">${c} sessão${c>1?'ões':''}</span></div>`).join('');
+      preview.style.display = 'block';
+    } catch(e) {}
+  }
+
+  async function iniciarRevisao() {
+    const custom = parseInt(document.getElementById('rev-custom').value);
+    if (custom>0) revQtd = Math.min(custom, 50);
+    const errEl = document.getElementById('rev-erro');
+    errEl.style.display = 'none';
+    try {
+      const ini = getPeriodoInicio();
+      const [sessoes, qRes] = await Promise.all([
+        supa(`/rest/v1/sessoes_estudo?select=disciplina,assunto&criado_em=gte.${ini}T00:00:00`),
+        supa(`/rest/v1/questoes_resultado?select=disciplina,total,acertos&criado_em=gte.${ini}T00:00:00`)
+      ]);
+      if (!sessoes || sessoes.length===0) { errEl.style.display='block'; errEl.textContent='Nenhum estudo registrado neste período ainda.'; return; }
+      const assuntos     = [...new Set(sessoes.map(s=>s.assunto).filter(Boolean))];
+      const disciplinas  = [...new Set(sessoes.map(s=>s.disciplina))];
+      const perfPorDisc  = {};
+      (qRes||[]).forEach(q => { if(!perfPorDisc[q.disciplina]) perfPorDisc[q.disciplina]={total:0,acertos:0}; perfPorDisc[q.disciplina].total+=q.total; perfPorDisc[q.disciplina].acertos+=q.acertos; });
+      const periodo      = revPeriodo==='semana' ? 'esta semana' : 'este mês';
+      const promptAssunt = assuntos.length>0 ? `Assuntos estudados: ${assuntos.join(', ')}.` : '';
+      const promptPerf   = Object.entries(perfPorDisc).map(([d,p])=>`${d}: ${Math.round(p.acertos/p.total*100)}%`).join(', ');
+      document.getElementById('rev-select').style.display  = 'none';
+      document.getElementById('rev-loading').style.display = 'block';
+      const qtdReal = Math.min(revQtd, 5);
+      const resp = await fetch('https://api.anthropic.com/v1/messages', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ model: AI_MODEL, max_tokens: 1000, messages: [{ role:'user', content:`Gere ${qtdReal} questões de revisão de concurso público para ${periodo}. Disciplinas: ${disciplinas.join(', ')}. ${promptAssunt} ${promptPerf?'Desempenho: '+promptPerf+'. Foque nas disciplinas com menor desempenho.':''} Distribua entre as disciplinas. Retorne APENAS JSON válido: {"questoes":[{"enunciado":"...","disciplina":"...","opcoes":{"A":"...","B":"...","C":"...","D":"...","E":"..."},"gabarito":"A","explicacao":"..."}]}` }] }) });
+      const data = await resp.json();
+      let text = data.content.map(c=>c.text||'').join('');
+      text = text.replace(/```json|```/g,'').trim();
+      const idx = text.indexOf('{'); if(idx>0) text=text.slice(idx);
+      revList = JSON.parse(text).questoes;
+      revAtual=0; revAcertos=0; revErros=0;
+      document.getElementById('rev-loading').style.display = 'none';
+      document.getElementById('rev-quiz').style.display    = 'block';
+      renderRevisao();
+    } catch(e) { document.getElementById('rev-loading').style.display='none'; document.getElementById('rev-select').style.display='block'; errEl.style.display='block'; errEl.textContent='Erro ao gerar revisão. Tente novamente.'; }
+  }
+
+  function renderRevisao() {
+    revRespondida = false;
+    const q = revList[revAtual];
+    document.getElementById('rev-resultado').style.display = 'none';
+    document.getElementById('rev-counter').textContent = `Questão ${revAtual+1} de ${revList.length}`;
+    document.getElementById('rev-mat-label').textContent = q.disciplina || '';
+    document.getElementById('rev-progress').style.width = (revAtual/revList.length*100) + '%';
+    document.getElementById('rev-enunciado').textContent = q.enunciado;
+    document.getElementById('rev-opcoes').innerHTML = Object.entries(q.opcoes).map(([l,t])=>`<div class="opcao" id="ropt-${l}" onclick="responderRev('${l}')"><span class="opcao-letra">${l}</span><span>${t}</span></div>`).join('');
+  }
+
+  function responderRev(letra) {
+    if (revRespondida) return; revRespondida=true;
+    const q=revList[revAtual]; const acertou=letra===q.gabarito;
+    if(acertou)revAcertos++;else revErros++;
+    document.querySelectorAll('#rev-opcoes .opcao').forEach(el=>el.style.pointerEvents='none');
+    document.getElementById('ropt-'+letra).classList.add(acertou?'correta':'errada');
+    if(!acertou) document.getElementById('ropt-'+q.gabarito).classList.add('correta');
+    document.getElementById('rev-res-title').textContent = acertou?'✓ Correto!':'✗ Incorreto — gabarito: '+q.gabarito;
+    document.getElementById('rev-res-title').style.color = acertou?'var(--text-success)':'var(--text-danger)';
+    document.getElementById('rev-explicacao').textContent = q.explicacao;
+    document.getElementById('rev-resultado').style.display = 'block';
+  }
+
+  function proximaRevisao() { revAtual++; if(revAtual>=revList.length) finalizarRevisao(); else renderRevisao(); }
+
+  async function finalizarRevisao() {
+    document.getElementById('rev-quiz').style.display  = 'none';
+    document.getElementById('rev-final').style.display = 'block';
+    const total=revList.length, pct=Math.round(revAcertos/total*100);
+    document.getElementById('revfin-acertos').textContent = revAcertos;
+    document.getElementById('revfin-erros').textContent   = revErros;
+    document.getElementById('revfin-pct').textContent     = pct + '%';
+    document.getElementById('revfin-total').textContent   = total;
+    try { await supa('/rest/v1/questoes_resultado', { method:'POST', body: JSON.stringify({ user_id: currentUser.user.id, disciplina: 'Revisão '+revPeriodo, assunto: null, total, acertos: revAcertos, erros: revErros }) }); } catch(e) {}
+    const aiTxt = pct>=80?`Revisão excelente com ${pct}% de acerto!`:pct>=60?`${pct}% na revisão. Continue praticando os pontos fracos.`:`${pct}% na revisão. Recomendo rever os conteúdos antes da próxima revisão.`;
+    document.getElementById('revfin-ai').innerHTML = `<div class="ai-header"><i class="ti ti-sparkles"></i> Análise da IA</div><div class="ai-msg">${aiTxt}</div>`;
+  }
+
+  function voltarRevisao()  { document.getElementById('rev-final').style.display='none'; resetRevSelect(); }
+  function resetRevSelect() { document.getElementById('rev-select').style.display='block'; document.getElementById('rev-quiz').style.display='none'; document.getElementById('rev-final').style.display='none'; }
+
+  // ─── CRONOGRAMA ───────────────────────────────────────────
+  async function renderCronograma() {
+    const diaHoje = DIAS_JS[new Date().getDay()];
+    let sessoesSem = [];
+    try { const ini=getPeriodoInicio(); sessoesSem = await supa(`/rest/v1/sessoes_estudo?select=disciplina,assunto,criado_em&criado_em=gte.${ini}T00:00:00&order=criado_em.desc`) || []; } catch(e) {}
+    document.getElementById('cronograma-list').innerHTML = DIAS_SEMANA.map(d => {
+      const mat      = userMeta.cronograma[d] || 'Livre';
+      const isHoje   = d === diaHoje;
+      const livre    = mat === 'Livre';
+      const sessao   = sessoesSem.find(s => DIAS_JS[new Date(s.criado_em).getDay()] === d);
+      const dataFmt  = sessao ? new Date(sessao.criado_em).toLocaleDateString('pt-BR') : null;
+      return `<div class="cron-day">
+        <div class="cron-day-header">
+          <div class="cron-dia-nome">${d}</div>
+          <div class="cron-mat">${mat}</div>
+          ${isHoje?'<span class="cron-badge badge-hoje">Hoje</span>':livre?'<span class="cron-badge badge-livre">Livre</span>':''}
+        </div>
+        ${sessao?`<div class="cron-reg"><span class="tag-ok"><i class="ti ti-check"></i> ${dataFmt}</span>${sessao.assunto?`<span class="cron-assunto">${sessao.assunto}</span>`:''}</div>`:''}
+      </div>`;
+    }).join('');
+  }
+
+  // ─── HISTÓRICO ────────────────────────────────────────────
+  async function renderHistorico() {
+    try {
+      const [rows, qRows] = await Promise.all([
+        supa('/rest/v1/sessoes_estudo?select=*&order=criado_em.desc&limit=30'),
+        supa('/rest/v1/questoes_resultado?select=*&order=criado_em.desc&limit=60')
+      ]);
+      if (!rows || rows.length===0) { document.getElementById('historico-list').innerHTML='<div class="empty">Nenhuma sessão ainda.</div>'; return; }
+      document.getElementById('historico-list').innerHTML = rows.map(s => {
+        const data  = new Date(s.criado_em).toLocaleDateString('pt-BR');
+        const tempo = fmtTime(s.tempo_segundos);
+        const q     = (qRows||[]).find(q=>q.criado_em.slice(0,10)===s.criado_em.slice(0,10) && q.disciplina===s.disciplina);
+        return `<div class="hist-row"><div class="hist-data">${data}</div><div class="hist-mat"><div>${s.disciplina}</div>${s.assunto?`<div class="hist-assunto">${s.assunto}</div>`:''}</div><div class="hist-stats"><span>${tempo}</span>${q?`<span class="hist-acerto">✓${q.acertos}</span><span class="hist-erro">✗${q.erros}</span>`:''}</div></div>`;
+      }).join('');
+    } catch(e) { document.getElementById('historico-list').innerHTML='<div class="empty">Erro ao carregar histórico.</div>'; }
+  }
+
+  // ─── CONFIG ───────────────────────────────────────────────
+  function carregarConfig() {
+    const saved = localStorage.getItem('concurso_cfg_' + currentUser?.user?.id);
+    if (saved) try { userMeta = Object.assign(userMeta, JSON.parse(saved)); } catch(e) {}
+  }
+
+  function renderConfig() {
+    document.getElementById('cfg-meta').value = userMeta.metaSec;
+    const allOpts = ['Conhecimentos Bancários','Vendas e Negociação','Informática','Português','Revisão e Questões','Livre'];
+    document.getElementById('cfg-cronograma').innerHTML = DIAS_SEMANA.map(d => {
+      const val  = userMeta.cronograma[d] || 'Livre';
+      const opts = allOpts.map(o=>`<option value="${o}"${o===val?' selected':''}>${o}</option>`).join('');
+      return `<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border)"><span style="font-size:13px;width:70px;flex-shrink:0;font-weight:500">${d}</span><select id="cfg-dia-${d}" style="flex:1">${opts}</select></div>`;
+    }).join('');
+  }
+
+  function salvarMeta() { userMeta.metaSec=parseInt(document.getElementById('cfg-meta').value); localStorage.setItem('concurso_cfg_'+currentUser?.user?.id, JSON.stringify(userMeta)); }
+
+  function salvarCronograma() {
+    DIAS_SEMANA.forEach(d => { const el=document.getElementById('cfg-dia-'+d); if(el) userMeta.cronograma[d]=el.value; });
+    localStorage.setItem('concurso_cfg_'+currentUser?.user?.id, JSON.stringify(userMeta));
+    alert('Cronograma salvo!');
+  }
+</script>
+</body>
+</html>
