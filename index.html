@@ -271,7 +271,7 @@
           <div class="metric-card"><div class="metric-label">Desempenho</div><div class="metric-value" id="m-desempenho">—</div><div class="metric-sub">% de acerto</div></div>
         </div>
         <div class="ai-box">
-          <div class="ai-header"><i class="ti ti-sparkles"></i> Análise da IA</div>
+          <div class="ai-header"><i class="ti ti-sparkles"></i> Análise</div>
           <div id="ai-msgs"><div class="ai-msg">Carregando análise...</div></div>
         </div>
         <div class="cards-row">
@@ -452,10 +452,10 @@
               <button class="btn btn-sm" onclick="setQQtd(30,this)">30</button>
               <input type="number" id="q-custom" placeholder="Outro" min="1" max="50" style="width:80px">
             </div>
-            <button class="btn btn-primary" onclick="iniciarQuestoes()">Gerar questões com IA ↗</button>
+            <button class="btn btn-primary" onclick="iniciarQuestoes()">Praticar questões ↗</button>
             <div id="q-erro" style="color:var(--text-danger);font-size:12px;margin-top:8px;display:none"></div>
           </div>
-          <div id="q-loading" style="display:none" class="q-loading"><i class="ti ti-loader-2" style="font-size:30px;display:block;margin-bottom:12px"></i>Gerando questões com IA...</div>
+          <div id="q-loading" style="display:none" class="q-loading"><i class="ti ti-loader-2" style="font-size:30px;display:block;margin-bottom:12px"></i>Buscando questões...</div>
           <div id="q-quiz" style="display:none">
             <div class="q-header"><span id="q-counter" class="q-num"></span><span id="q-mat-label" style="font-size:12px;color:var(--text-muted)"></span></div>
             <div class="progress-bar"><div class="progress-fill" id="q-progress" style="width:0%"></div></div>
@@ -488,7 +488,7 @@
             <div class="card-title" style="margin-bottom:14px">Revisão inteligente</div>
             <div class="ai-box" style="margin-bottom:16px">
               <div class="ai-header"><i class="ti ti-sparkles"></i> Como funciona</div>
-              <div class="ai-msg">A IA distribui as questões entre todos os assuntos que você estudou no período, priorizando disciplinas com menor desempenho.</div>
+              <div class="ai-msg">As questões são distribuídas entre os assuntos que você estudou no período, priorizando disciplinas com menor desempenho.</div>
             </div>
             <div class="section-title">Período</div>
             <div style="display:flex;gap:8px;margin-bottom:16px">
@@ -506,10 +506,10 @@
               <div class="revisao-tag">Disciplinas do período</div>
               <div id="rev-preview-content" style="font-size:13px;color:var(--text-secondary)"></div>
             </div>
-            <button class="btn btn-primary" onclick="iniciarRevisao()" style="margin-top:8px">Gerar revisão com IA ↗</button>
+            <button class="btn btn-primary" onclick="iniciarRevisao()" style="margin-top:8px">Iniciar revisão ↗</button>
             <div id="rev-erro" style="color:var(--text-danger);font-size:12px;margin-top:8px;display:none"></div>
           </div>
-          <div id="rev-loading" style="display:none" class="q-loading"><i class="ti ti-loader-2" style="font-size:30px;display:block;margin-bottom:12px"></i>Gerando revisão personalizada...</div>
+          <div id="rev-loading" style="display:none" class="q-loading"><i class="ti ti-loader-2" style="font-size:30px;display:block;margin-bottom:12px"></i>Montando revisão...</div>
           <div id="rev-quiz" style="display:none">
             <div class="q-header"><span id="rev-counter" class="q-num"></span><span id="rev-mat-label" style="font-size:12px;color:var(--text-muted)"></span></div>
             <div class="progress-bar"><div class="progress-fill" id="rev-progress" style="width:0%"></div></div>
@@ -574,13 +574,19 @@
   // ─── CONFIG ───────────────────────────────────────────────
   const SUPA_URL = 'https://cupqehipllbouqxiypcs.supabase.co';
   const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1cHFlaGlwbGxib3VxeGl5cGNzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU4Nzk5NDIsImV4cCI6MjEwMTQ1NTk0Mn0.Y5bLmfjVEQT6EHOP1brMpC9vHkiq_VMtb075U9Rnuqw';
-  const AI_MODEL = 'claude-sonnet-4-6';
 
   const DISCIPLINAS = [
     { nome: 'Conhecimentos Bancários', icon: 'ti-building-bank' },
     { nome: 'Vendas e Negociação',     icon: 'ti-chart-line' },
     { nome: 'Informática',             icon: 'ti-device-laptop' },
     { nome: 'Português',               icon: 'ti-abc' },
+    { nome: 'Matemática',              icon: 'ti-math-symbols' },
+  ];
+  // Disciplinas usadas na tela de Questões — devem bater com o que existe em banco_questoes
+  const DISCIPLINAS_BANCO = [
+    { nome: 'Português',               icon: 'ti-abc' },
+    { nome: 'Matemática',              icon: 'ti-math-symbols' },
+    { nome: 'Conhecimentos Bancários', icon: 'ti-building-bank' },
   ];
   const DIAS_SEMANA = ['Segunda','Terça','Quarta','Quinta','Sexta','Sábado','Domingo'];
   const DIAS_JS     = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
@@ -697,7 +703,8 @@
     ['timer','questoes'].forEach(ctx => {
       const c = document.getElementById('disciplinas-' + ctx);
       c.innerHTML = '';
-      DISCIPLINAS.forEach(d => {
+      const lista = ctx === 'questoes' ? DISCIPLINAS_BANCO : DISCIPLINAS;
+      lista.forEach(d => {
         const el = document.createElement('div');
         el.className = 'mat-btn';
         el.innerHTML = `<i class="ti ${d.icon}"></i>${d.nome}`;
@@ -962,64 +969,47 @@
 
   function setQQtd(n,el) { qQtd=n; document.getElementById('q-custom').value=''; document.querySelectorAll('#q-select .btn-sm').forEach(b=>b.style.fontWeight='400'); if(el)el.style.fontWeight='600'; }
 
-  function montarPromptCesgranrio(qtd, disciplina, assunto, conteudo) {
-    const estilo = `Você é um elaborador de questões da banca Cesgranrio para concursos públicos bancários (Banco do Brasil, Caixa, Petrobras). Siga rigorosamente o estilo Cesgranrio:
-- Enunciados contextualizados com situações reais do dia a dia bancário ou profissional
-- Textos introdutórios com cenários ("João é funcionário de um banco e precisa...", "Uma empresa recebe uma proposta...")
-- 5 alternativas (A a E), todas plausíveis, com apenas uma correta
-- Distratores bem elaborados, que confundem quem não domina o conteúdo
-- Linguagem formal e precisa
-- Evite enunciados diretos e simples como "O que é X?" — contextualize sempre`;
-
-    const topico = assunto ? `sobre "${assunto}" dentro de ${disciplina}` : `sobre ${disciplina}`;
-
-    let userContent;
-    if (conteudo?.tipo === 'texto') {
-      userContent = `${estilo}\n\nGere ${qtd} questões ${topico}, baseadas prioritariamente no seguinte conteúdo estudado:\n\n"${conteudo.texto}"\n\nRetorne APENAS JSON válido: {"questoes":[{"enunciado":"...","opcoes":{"A":"...","B":"...","C":"...","D":"...","E":"..."},"gabarito":"A","explicacao":"..."}]}`;
-      return { messages: [{ role:'user', content: userContent }] };
-    } else if (conteudo?.tipo === 'imagem') {
-      return { messages: [{ role:'user', content: [
-        { type:'image', source:{ type:'base64', media_type: conteudo.mimeType, data: conteudo.base64 } },
-        { type:'text', text:`${estilo}\n\nGere ${qtd} questões ${topico} baseadas no conteúdo desta imagem (material de estudo). Retorne APENAS JSON válido: {"questoes":[{"enunciado":"...","opcoes":{"A":"...","B":"...","C":"...","D":"...","E":"..."},"gabarito":"A","explicacao":"..."}]}` }
-      ]}] };
-    } else if (conteudo?.tipo === 'pdf') {
-      return { messages: [{ role:'user', content: [
-        { type:'document', source:{ type:'base64', media_type:'application/pdf', data: conteudo.base64 } },
-        { type:'text', text:`${estilo}\n\nGere ${qtd} questões ${topico} baseadas no conteúdo deste PDF (material de estudo). Retorne APENAS JSON válido: {"questoes":[{"enunciado":"...","opcoes":{"A":"...","B":"...","C":"...","D":"...","E":"..."},"gabarito":"A","explicacao":"..."}]}` }
-      ]}] };
-    } else {
-      userContent = `${estilo}\n\nGere ${qtd} questões ${topico}. Retorne APENAS JSON válido: {"questoes":[{"enunciado":"...","opcoes":{"A":"...","B":"...","C":"...","D":"...","E":"..."},"gabarito":"A","explicacao":"..."}]}`;
-      return { messages: [{ role:'user', content: userContent }] };
+  function embaralhar(arr) {
+    const a = arr.slice();
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
     }
+    return a;
+  }
+
+  async function buscarQuestoesBanco(disciplina, assunto, qtd) {
+    let path = `/rest/v1/banco_questoes?select=*&disciplina=eq.${encodeURIComponent(disciplina)}`;
+    if (assunto) path += `&assunto=ilike.*${encodeURIComponent(assunto)}*`;
+    const rows = await supa(path);
+    return embaralhar(rows || []).slice(0, qtd);
   }
 
   async function iniciarQuestoes() {
     const custom = parseInt(document.getElementById('q-custom').value);
-    if (custom>0) qQtd = Math.min(custom, 20);
+    if (custom>0) qQtd = Math.min(custom, 50);
     const errEl  = document.getElementById('q-erro');
     if (!qMat) { errEl.style.display='block'; errEl.textContent='Selecione uma disciplina.'; return; }
     errEl.style.display = 'none';
     const assunto  = document.getElementById('q-assunto-input').value.trim();
-    const conteudo = sessaoAtual?.conteudoExtra?.tipo ? sessaoAtual.conteudoExtra : null;
     document.getElementById('q-select').style.display  = 'none';
     document.getElementById('q-loading').style.display = 'block';
     try {
-      const qtdReal  = Math.min(qQtd, 5);
-      const payload  = montarPromptCesgranrio(qtdReal, qMat, assunto, conteudo);
-      const resp = await fetch('https://api.anthropic.com/v1/messages', {
-        method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ model: AI_MODEL, max_tokens: 2000, ...payload })
-      });
-      const data = await resp.json();
-      let text = data.content.map(c=>c.text||'').join('');
-      text = text.replace(/```json|```/g,'').trim();
-      const idx = text.indexOf('{'); if(idx>0) text=text.slice(idx);
-      questoesList = JSON.parse(text).questoes;
+      questoesList = await buscarQuestoesBanco(qMat, assunto, qQtd);
+      if (questoesList.length === 0) {
+        document.getElementById('q-loading').style.display='none';
+        document.getElementById('q-select').style.display='block';
+        errEl.style.display='block';
+        errEl.textContent = assunto
+          ? `Nenhuma questão de "${qMat}" com o assunto "${assunto}" no banco ainda.`
+          : `Nenhuma questão de "${qMat}" no banco ainda.`;
+        return;
+      }
       qAtual=0; qAcertos=0; qErros=0;
       document.getElementById('q-loading').style.display = 'none';
       document.getElementById('q-quiz').style.display    = 'block';
       renderQuestao();
-    } catch(e) { document.getElementById('q-loading').style.display='none'; document.getElementById('q-select').style.display='block'; errEl.style.display='block'; errEl.textContent='Erro ao gerar questões. Tente novamente.'; console.error(e); }
+    } catch(e) { document.getElementById('q-loading').style.display='none'; document.getElementById('q-select').style.display='block'; errEl.style.display='block'; errEl.textContent='Erro ao buscar questões. Tente novamente.'; console.error(e); }
   }
 
   function renderQuestao() {
@@ -1058,7 +1048,7 @@
     document.getElementById('fin-total').textContent   = total;
     try { await supa('/rest/v1/questoes_resultado', { method:'POST', body: JSON.stringify({ user_id: currentUser.user.id, disciplina: qMat, assunto: document.getElementById('q-assunto-input').value.trim()||null, total, acertos: qAcertos, erros: qErros }) }); } catch(e) { console.error(e); }
     const aiTxt = pct>=80 ? `Excelente! ${pct}% de acerto. Continue!` : pct>=60 ? `${pct}% de acerto. Revise os erros para melhorar.` : `${pct}% de acerto. Recomendo rever o conteúdo antes de continuar.`;
-    document.getElementById('fin-ai-msg').innerHTML = `<div class="ai-header"><i class="ti ti-sparkles"></i> Análise da IA</div><div class="ai-msg">${aiTxt}</div>`;
+    document.getElementById('fin-ai-msg').innerHTML = `<div class="ai-header"><i class="ti ti-sparkles"></i> Análise</div><div class="ai-msg">${aiTxt}</div>`;
   }
 
   function voltarSelect() { document.getElementById('q-final').style.display='none'; document.getElementById('q-select').style.display='block'; document.querySelectorAll('#disciplinas-questoes .mat-btn').forEach(b=>b.classList.remove('active')); qMat=''; }
@@ -1083,7 +1073,7 @@
 
   async function iniciarRevisao() {
     const custom = parseInt(document.getElementById('rev-custom').value);
-    if (custom>0) revQtd = Math.min(custom, 50);
+    if (custom>0) revQtd = Math.min(custom, 200);
     const errEl = document.getElementById('rev-erro');
     errEl.style.display = 'none';
     try {
@@ -1093,28 +1083,42 @@
         supa(`/rest/v1/questoes_resultado?select=disciplina,total,acertos&criado_em=gte.${ini}T00:00:00`)
       ]);
       if (!sessoes || sessoes.length===0) { errEl.style.display='block'; errEl.textContent='Nenhum estudo registrado neste período ainda.'; return; }
-      const assuntos     = [...new Set(sessoes.map(s=>s.assunto).filter(Boolean))];
-      const disciplinas  = [...new Set(sessoes.map(s=>s.disciplina))];
-      const perfPorDisc  = {};
+
+      const nomesBanco   = DISCIPLINAS_BANCO.map(d=>d.nome);
+      const disciplinas  = [...new Set(sessoes.map(s=>s.disciplina))].filter(d => nomesBanco.includes(d));
+      if (disciplinas.length === 0) { errEl.style.display='block'; errEl.textContent='As disciplinas estudadas neste período ainda não têm questões no banco.'; return; }
+
+      const perfPorDisc = {};
       (qRes||[]).forEach(q => { if(!perfPorDisc[q.disciplina]) perfPorDisc[q.disciplina]={total:0,acertos:0}; perfPorDisc[q.disciplina].total+=q.total; perfPorDisc[q.disciplina].acertos+=q.acertos; });
-      const periodo      = revPeriodo==='semana' ? 'esta semana' : 'este mês';
-      const promptAssunt = assuntos.length>0 ? `Assuntos estudados: ${assuntos.join(', ')}.` : '';
-      const promptPerf   = Object.entries(perfPorDisc).map(([d,p])=>`${d}: ${Math.round(p.acertos/p.total*100)}%`).join(', ');
+
+      // Peso maior para disciplinas com pior desempenho (ou sem histórico ainda, tratado como neutro)
+      const pesos = disciplinas.map(d => {
+        const p = perfPorDisc[d];
+        const pct = p && p.total>0 ? (p.acertos/p.total*100) : 50;
+        return Math.max(100 - pct, 15); // piso de 15 para toda disciplina continuar aparecendo
+      });
+      const somaPesos = pesos.reduce((a,b)=>a+b,0);
+      const qtdPorDisc = disciplinas.map((d,i) => Math.max(1, Math.round(revQtd * pesos[i] / somaPesos)));
+
       document.getElementById('rev-select').style.display  = 'none';
       document.getElementById('rev-loading').style.display = 'block';
-      const qtdReal = Math.min(revQtd, 5);
-      const estiloCesgranrio = `Você é um elaborador de questões da banca Cesgranrio. Estilo obrigatório: enunciados contextualizados com situações reais (bancárias, profissionais), texto introdutório com cenário, 5 alternativas plausíveis, linguagem formal, distratores elaborados. Nunca faça perguntas diretas simples.`;
-      const resp = await fetch('https://api.anthropic.com/v1/messages', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ model: AI_MODEL, max_tokens: 2000, messages: [{ role:'user', content:`${estiloCesgranrio}\n\nGere ${qtdReal} questões de revisão para ${periodo}. Disciplinas: ${disciplinas.join(', ')}. ${promptAssunt} ${promptPerf?'Desempenho atual: '+promptPerf+'. Priorize as disciplinas com menor desempenho.':''} Distribua as questões entre as disciplinas. Retorne APENAS JSON válido: {"questoes":[{"enunciado":"...","disciplina":"...","opcoes":{"A":"...","B":"...","C":"...","D":"...","E":"..."},"gabarito":"A","explicacao":"..."}]}` }] }) });
-      const data = await resp.json();
-      let text = data.content.map(c=>c.text||'').join('');
-      text = text.replace(/```json|```/g,'').trim();
-      const idx = text.indexOf('{'); if(idx>0) text=text.slice(idx);
-      revList = JSON.parse(text).questoes;
+
+      const lotes = await Promise.all(disciplinas.map((d,i) => buscarQuestoesBanco(d, '', qtdPorDisc[i])));
+      revList = embaralhar(lotes.flat()).slice(0, revQtd);
+
+      if (revList.length === 0) {
+        document.getElementById('rev-loading').style.display='none';
+        document.getElementById('rev-select').style.display='block';
+        errEl.style.display='block';
+        errEl.textContent='Nenhuma questão disponível no banco para essas disciplinas ainda.';
+        return;
+      }
+
       revAtual=0; revAcertos=0; revErros=0;
       document.getElementById('rev-loading').style.display = 'none';
       document.getElementById('rev-quiz').style.display    = 'block';
       renderRevisao();
-    } catch(e) { document.getElementById('rev-loading').style.display='none'; document.getElementById('rev-select').style.display='block'; errEl.style.display='block'; errEl.textContent='Erro ao gerar revisão. Tente novamente.'; }
+    } catch(e) { document.getElementById('rev-loading').style.display='none'; document.getElementById('rev-select').style.display='block'; errEl.style.display='block'; errEl.textContent='Erro ao montar a revisão. Tente novamente.'; console.error(e); }
   }
 
   function renderRevisao() {
@@ -1153,7 +1157,7 @@
     document.getElementById('revfin-total').textContent   = total;
     try { await supa('/rest/v1/questoes_resultado', { method:'POST', body: JSON.stringify({ user_id: currentUser.user.id, disciplina: 'Revisão '+revPeriodo, assunto: null, total, acertos: revAcertos, erros: revErros }) }); } catch(e) {}
     const aiTxt = pct>=80?`Revisão excelente com ${pct}% de acerto!`:pct>=60?`${pct}% na revisão. Continue praticando os pontos fracos.`:`${pct}% na revisão. Recomendo rever os conteúdos antes da próxima revisão.`;
-    document.getElementById('revfin-ai').innerHTML = `<div class="ai-header"><i class="ti ti-sparkles"></i> Análise da IA</div><div class="ai-msg">${aiTxt}</div>`;
+    document.getElementById('revfin-ai').innerHTML = `<div class="ai-header"><i class="ti ti-sparkles"></i> Análise</div><div class="ai-msg">${aiTxt}</div>`;
   }
 
   function voltarRevisao()  { document.getElementById('rev-final').style.display='none'; resetRevSelect(); }
@@ -1221,9 +1225,6 @@
     localStorage.setItem('concurso_cfg_'+currentUser?.user?.id, JSON.stringify(userMeta));
     alert('Cronograma salvo!');
   }
-</script>
-</body>
-</html>
 </script>
 </body>
 </html>
