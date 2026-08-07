@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ConcursoIA — Plataforma de Estudos</title>
+  <title>MD Trilha — Plataforma de Estudos</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/tabler-icons.min.css">
   <style>
     :root {
@@ -209,6 +209,269 @@
       padding: 7px 10px; transition: border 0.15s;
     }
     select:focus, input:focus { outline: none; border-color: var(--border-accent); }
+
+
+    /* FEEDBACK DE QUESTÕES */
+    .questoes-wrap { max-width: 760px; margin: 0 auto; }
+    .q-meta { display:flex; gap:6px; flex-wrap:wrap; margin:-6px 0 12px; }
+    .meta-chip { display:inline-flex; align-items:center; gap:5px; padding:4px 8px; border-radius:999px; background:var(--surface-0); border:1px solid var(--border); color:var(--text-secondary); font-size:11px; }
+    .q-resultado.feedback-ok { border-color:var(--border-success); background:var(--bg-success); }
+    .q-resultado.feedback-erro { border-color:var(--border-danger); background:var(--bg-danger); }
+    .feedback-answer { margin-top:10px; padding:10px 12px; border-radius:8px; background:rgba(255,255,255,.72); border:1px solid rgba(0,0,0,.06); font-size:13px; line-height:1.55; }
+    .feedback-label { display:block; font-size:10px; text-transform:uppercase; letter-spacing:.55px; color:var(--text-muted); font-weight:700; margin-bottom:4px; }
+    .feedback-explanation { margin-top:10px; padding-top:10px; border-top:1px solid rgba(0,0,0,.08); }
+    .feedback-source { margin-top:8px; font-size:11px; color:var(--text-muted); }
+    .session-breakdown { margin-top:12px; display:grid; gap:7px; }
+    .session-topic { display:grid; grid-template-columns:minmax(120px,1fr) 70px 42px; gap:8px; align-items:center; font-size:12px; }
+
+    /* ABA DE DESEMPENHO */
+    .analytics-toolbar { display:flex; align-items:flex-end; justify-content:space-between; gap:16px; margin-bottom:16px; }
+    .analytics-title { font-size:18px; font-weight:650; margin-bottom:4px; }
+    .analytics-subtitle { font-size:12px; color:var(--text-muted); line-height:1.5; }
+    .analytics-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px; }
+    .analytics-list { display:grid; gap:10px; }
+    .topic-row { display:grid; grid-template-columns:minmax(120px,1.5fr) minmax(100px,1fr) 54px; align-items:center; gap:10px; }
+    .topic-name { font-size:12px; color:var(--text-secondary); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .topic-track { height:8px; border-radius:999px; background:var(--surface-0); overflow:hidden; }
+    .topic-fill { height:100%; border-radius:999px; background:var(--fill-accent); }
+    .topic-value { text-align:right; font-size:11px; font-weight:650; }
+    .priority-card { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; padding:11px 0; border-bottom:1px solid var(--border); }
+    .priority-card:last-child { border-bottom:none; }
+    .priority-name { font-size:13px; font-weight:600; margin-bottom:3px; }
+    .priority-sub { font-size:11px; color:var(--text-muted); line-height:1.45; }
+    .priority-actions { display:flex; align-items:center; gap:8px; flex-shrink:0; }
+    .priority-badge { font-size:11px; padding:3px 8px; border-radius:999px; font-weight:650; }
+    .priority-high { color:var(--text-danger); background:var(--bg-danger); }
+    .priority-mid { color:var(--text-warning); background:var(--bg-warning); }
+    .priority-good { color:var(--text-success); background:var(--bg-success); }
+    .analytics-table-wrap { overflow-x:auto; }
+    .analytics-table { width:100%; border-collapse:collapse; font-size:12px; }
+    .analytics-table th { text-align:left; color:var(--text-muted); font-size:10px; text-transform:uppercase; letter-spacing:.45px; padding:8px 10px; border-bottom:1px solid var(--border); }
+    .analytics-table td { padding:10px; border-bottom:1px solid var(--border); vertical-align:middle; }
+    .analytics-table tr:last-child td { border-bottom:none; }
+    .confidence-note { margin-top:10px; font-size:11px; line-height:1.5; color:var(--text-muted); }
+    .insight-callout { display:flex; gap:10px; align-items:flex-start; padding:12px; border-radius:10px; background:var(--bg-accent); border:1px solid var(--border-accent); font-size:12px; line-height:1.55; }
+    .insight-callout i { color:var(--text-accent); font-size:18px; margin-top:1px; }
+
+    /* RESPONSIVIDADE */
+    @media (max-width: 900px) {
+      .metrics-grid { grid-template-columns:repeat(2,1fr); }
+      .cards-row, .analytics-grid, .timer-card-wrap { grid-template-columns:1fr; }
+      .timer-card-wrap { max-width:600px; }
+    }
+    @media (max-width: 700px) {
+      .main-app { display:block; height:100dvh; overflow:auto; }
+      .sidebar { position:sticky; top:0; z-index:50; width:100%; min-width:0; height:auto; flex-direction:row; align-items:center; overflow-x:auto; padding:7px; gap:4px; border-right:none; border-bottom:1px solid var(--border); }
+      .sidebar-logo, .sidebar-user { display:none; }
+      .nav-item { flex:0 0 auto; white-space:nowrap; border-radius:8px; padding:8px 10px; }
+      .nav-sair { margin-top:0; border-top:none; padding-top:0; display:flex; }
+      .main { overflow:visible; }
+      .topbar { padding:11px 13px; }
+      .content { padding:12px; }
+      .analytics-toolbar { align-items:stretch; flex-direction:column; }
+      .analytics-toolbar select { width:100%; }
+      .select-materia { grid-template-columns:1fr; }
+      .timer-display { font-size:40px; }
+      .q-enunciado { font-size:13px; padding:12px; }
+      .opcao { padding:10px; }
+      .topic-row { grid-template-columns:minmax(100px,1.25fr) minmax(80px,1fr) 45px; }
+      .priority-card { flex-direction:column; }
+      .priority-actions { width:100%; justify-content:space-between; }
+    }
+
+
+    /* ========================================================
+       MD TRILHA — IDENTIDADE E EXPERIÊNCIA
+       ======================================================== */
+    :root {
+      --font-sans: 'Segoe UI', Inter, system-ui, -apple-system, sans-serif;
+      --surface-0: #f3f0e9;
+      --surface-1: #ffffff;
+      --surface-2: #fbfaf7;
+      --text-primary: #10243a;
+      --text-secondary: #516173;
+      --text-muted: #8994a1;
+      --text-accent: #e47b25;
+      --text-success: #137a5b;
+      --text-warning: #a65f00;
+      --text-danger: #c53f42;
+      --border: #e5e0d7;
+      --border-strong: #d5cec2;
+      --border-accent: #f2b783;
+      --border-success: #9bd8c0;
+      --border-danger: #efb1b1;
+      --bg-accent: #fff2e6;
+      --bg-success: #eaf8f2;
+      --bg-warning: #fff5d9;
+      --bg-danger: #fff0f0;
+      --fill-accent: #e47b25;
+      --fill-accent-hover: #c96416;
+      --fill-success: #168161;
+      --fill-warning: #d28a1a;
+      --fill-danger: #c53f42;
+      --navy: #0d2238;
+      --navy-2: #15324f;
+      --teal: #2b7a78;
+      --sand: #f3f0e9;
+      --on-accent: #ffffff;
+      --radius: 14px;
+      --shadow-sm: 0 8px 24px rgba(16,36,58,.07);
+      --shadow-md: 0 18px 50px rgba(16,36,58,.12);
+    }
+    body { background:var(--surface-0); }
+    .auth-wrap { background:radial-gradient(circle at 20% 10%, #244969 0, var(--navy) 44%, #081725 100%); }
+    .auth-card { border:0; border-radius:24px; box-shadow:0 30px 80px rgba(0,0,0,.3); padding:38px; }
+    .auth-brand-mark { width:58px; height:58px; margin:0 auto 8px; display:grid; place-items:center; border-radius:19px; background:var(--bg-accent); color:var(--fill-accent); font-size:30px; transform:rotate(-5deg); }
+    .auth-logo-title { font-size:26px; font-weight:800; letter-spacing:-.6px; color:var(--navy); }
+    .auth-logo-sub { line-height:1.5; }
+    .auth-tabs { border:0; background:#edf0f3; padding:4px; border-radius:12px; }
+    .auth-tab { border-radius:9px; background:transparent; }
+    .auth-tab.active { background:#fff; color:var(--navy); box-shadow:0 2px 8px rgba(0,0,0,.07); }
+    .form-input, select, input[type=text], input[type=email], input[type=password], input[type=number], textarea { background:#faf9f6; border-color:var(--border); }
+    .auth-btn { border-radius:12px; padding:12px; }
+
+    .sidebar { width:232px; min-width:232px; background:linear-gradient(180deg,var(--navy) 0%,#0a1b2c 100%); border:0; padding:20px 12px 14px; gap:4px; }
+    .sidebar-logo { padding:0 10px 20px; border:0; margin:0 0 8px; color:#fff; font-size:19px; letter-spacing:-.3px; }
+    .brand-mark { width:38px; height:38px; display:grid; place-items:center; border-radius:12px; background:var(--fill-accent); color:#fff; font-size:21px; box-shadow:0 8px 24px rgba(228,123,37,.3); }
+    .sidebar-user { margin:0 10px 14px; padding:10px 12px; border:1px solid rgba(255,255,255,.08); border-radius:12px; color:#9fb1c3; background:rgba(255,255,255,.035); }
+    .nav-group-label { color:#5f7891; font-size:9px; text-transform:uppercase; letter-spacing:1.2px; font-weight:800; padding:15px 13px 5px; }
+    .nav-item { margin:1px 0; padding:10px 12px; border-radius:11px; color:#b7c5d2; font-size:13px; }
+    .nav-item:hover { background:rgba(255,255,255,.07); color:#fff; }
+    .nav-item.active { background:linear-gradient(90deg,rgba(228,123,37,.22),rgba(228,123,37,.06)); color:#fff; box-shadow:inset 3px 0 0 var(--fill-accent); }
+    .nav-item.active i { color:#ffad63; }
+    .nav-sair { border-color:rgba(255,255,255,.08); }
+    .main { background:var(--surface-0); }
+    .topbar { background:rgba(243,240,233,.88); backdrop-filter:blur(16px); border-color:rgba(213,206,194,.7); padding:17px 28px; }
+    .topbar-title { color:var(--navy); font-size:16px; }
+    .streak-badge { background:#fff0d8; border:1px solid #f2d29b; color:#9b5b00; }
+    .content { padding:28px; max-width:1440px; width:100%; margin:0 auto; }
+    .card, .metric-card { border:0; box-shadow:var(--shadow-sm); }
+    .card { border-radius:18px; padding:20px; }
+    .card-title { color:var(--navy); font-size:14px; }
+    .metrics-grid { gap:14px; }
+    .metric-card { border-radius:18px; padding:18px; display:flex; align-items:center; gap:13px; min-height:104px; }
+    .metric-icon { width:42px; height:42px; border-radius:13px; display:grid; place-items:center; font-size:20px; flex:0 0 auto; }
+    .metric-icon.accent { background:var(--bg-accent); color:var(--fill-accent); }
+    .metric-icon.warm { background:#fff4d6; color:#bd7300; }
+    .metric-icon.teal { background:#e7f4f2; color:var(--teal); }
+    .metric-icon.success { background:var(--bg-success); color:var(--text-success); }
+    .metric-value { color:var(--navy); font-size:24px; letter-spacing:-.5px; }
+    .metric-label { color:#6d7884; }
+
+    .trail-hero { min-height:230px; margin-bottom:18px; padding:34px; border-radius:24px; display:flex; align-items:center; justify-content:space-between; gap:24px; color:#fff; background:linear-gradient(125deg,var(--navy) 0%,var(--navy-2) 70%,#254f70 100%); box-shadow:var(--shadow-md); overflow:hidden; position:relative; }
+    .trail-hero:after { content:''; position:absolute; width:330px; height:330px; border:1px solid rgba(255,255,255,.09); border-radius:50%; right:-90px; top:-180px; box-shadow:0 0 0 42px rgba(255,255,255,.025),0 0 0 86px rgba(255,255,255,.018); }
+    .trail-hero-copy { position:relative; z-index:2; max-width:650px; }
+    .eyebrow { display:block; color:var(--fill-accent); font-size:10px; font-weight:800; letter-spacing:1.3px; text-transform:uppercase; margin-bottom:8px; }
+    .trail-hero .eyebrow { color:#ffad63; }
+    .trail-hero h1, .page-heading h2 { margin:0; letter-spacing:-.8px; }
+    .trail-hero h1 { font-size:32px; margin-bottom:9px; }
+    .trail-hero p { color:#c7d3df; font-size:14px; line-height:1.65; max-width:560px; }
+    .hero-actions { display:flex; gap:10px; margin-top:21px; flex-wrap:wrap; }
+    .trail-compass { width:112px; height:112px; border-radius:32px; display:grid; place-items:center; font-size:56px; color:#ffad63; background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.1); transform:rotate(-8deg); position:relative; z-index:2; }
+    .btn { border-radius:11px; font-weight:650; display:inline-flex; align-items:center; justify-content:center; gap:7px; }
+    .btn-lg { padding:11px 17px; font-size:13px; }
+    .btn-ghost { background:rgba(255,255,255,.08); color:#fff; border-color:rgba(255,255,255,.16); }
+    .btn-ghost:hover { background:rgba(255,255,255,.14); }
+
+    .page-heading { display:flex; justify-content:space-between; align-items:flex-end; gap:18px; margin-bottom:20px; }
+    .page-heading h2 { font-size:25px; color:var(--navy); margin-bottom:5px; }
+    .page-heading p { color:var(--text-secondary); font-size:13px; line-height:1.55; }
+    .practice-builder, .questoes-wrap { max-width:920px; }
+    .context-card { background:#fff7ef; border:1px solid #f3d2b3; border-radius:16px; padding:15px 17px; margin-bottom:14px; display:flex; align-items:center; justify-content:space-between; gap:14px; }
+    .context-kicker { font-size:10px; color:var(--fill-accent); text-transform:uppercase; font-weight:800; letter-spacing:.7px; }
+    .context-title { color:var(--navy); font-size:13px; font-weight:700; margin-top:4px; }
+    .mode-tabs { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:14px; }
+    .mode-tab { border:1px solid var(--border); background:rgba(255,255,255,.62); border-radius:16px; padding:14px; cursor:pointer; display:flex; align-items:center; gap:10px; text-align:left; color:var(--text-secondary); transition:.18s; }
+    .mode-tab i { font-size:22px; }
+    .mode-tab span { display:flex; flex-direction:column; font-weight:750; color:var(--navy); }
+    .mode-tab small { font-weight:450; color:var(--text-muted); margin-top:2px; }
+    .mode-tab:hover { transform:translateY(-1px); border-color:#d8b38d; }
+    .mode-tab.active { border-color:var(--fill-accent); background:var(--bg-accent); box-shadow:0 8px 20px rgba(228,123,37,.09); }
+    .mode-tab.active i { color:var(--fill-accent); }
+    .builder-card { background:#fff; border-radius:20px; padding:22px; box-shadow:var(--shadow-sm); }
+    .builder-section + .builder-section { padding-top:18px; margin-top:18px; border-top:1px solid var(--border); }
+    .filter-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+    .field { display:flex; flex-direction:column; gap:6px; }
+    .field > span { font-size:11px; font-weight:700; color:var(--text-secondary); }
+    .field input, .field select { width:100%; min-height:42px; }
+    .quantity-picker { display:flex; gap:8px; flex-wrap:wrap; }
+    .quantity-btn { min-width:52px; height:40px; border-radius:11px; border:1px solid var(--border); background:#faf9f6; color:var(--navy); font-weight:700; cursor:pointer; }
+    .quantity-btn.active { background:var(--navy); color:#fff; border-color:var(--navy); }
+    .quantity-picker input { width:90px; height:40px; }
+    .builder-submit { width:100%; margin-top:21px; padding:13px; }
+    .form-error { color:var(--text-danger); font-size:12px; background:var(--bg-danger); border:1px solid var(--border-danger); padding:10px 12px; border-radius:10px; margin-top:10px; }
+    .manual-picker { margin-top:15px; background:#fff; border-radius:20px; padding:20px; box-shadow:var(--shadow-sm); }
+    .manual-toolbar, .manual-footer { display:flex; justify-content:space-between; align-items:center; gap:12px; }
+    .manual-toolbar span { display:block; color:var(--text-muted); font-size:11px; margin-top:2px; }
+    .manual-list { display:grid; gap:8px; max-height:520px; overflow:auto; padding:12px 2px; margin:12px 0; }
+    .manual-item { display:grid; grid-template-columns:22px 1fr auto; gap:10px; align-items:flex-start; padding:12px; border:1px solid var(--border); border-radius:13px; cursor:pointer; transition:.12s; }
+    .manual-item:hover { border-color:#d5a87f; background:#fffaf5; }
+    .manual-item.selected { border-color:var(--fill-accent); background:var(--bg-accent); }
+    .manual-item input { margin-top:3px; }
+    .manual-title { font-size:12px; line-height:1.5; color:var(--navy); }
+    .manual-meta { font-size:10px; color:var(--text-muted); margin-top:5px; }
+    .manual-id { font-size:10px; color:var(--text-muted); }
+
+    .q-enunciado { background:#fff; border:0; box-shadow:var(--shadow-sm); border-radius:18px; padding:22px; font-size:15px; }
+    .opcao { background:#fff; border:1px solid transparent; box-shadow:0 4px 16px rgba(16,36,58,.055); border-radius:14px; padding:13px 15px; }
+    .opcao:hover { border-color:#d9c2ad; background:#fffaf6; transform:translateY(-1px); }
+    .q-resultado { border:0; box-shadow:var(--shadow-sm); border-radius:18px; padding:18px; }
+
+    .plan-heading { align-items:flex-start; }
+    .plan-layout { display:grid; grid-template-columns:minmax(0,1.5fr) minmax(340px,.9fr); gap:16px; align-items:start; }
+    .plan-card, .plan-editor-card { border-radius:20px; }
+    .plan-summary { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:16px; }
+    .plan-summary-item { background:#fff; box-shadow:var(--shadow-sm); border-radius:16px; padding:15px; }
+    .plan-summary-value { font-size:22px; font-weight:800; color:var(--navy); }
+    .plan-summary-label { color:var(--text-muted); font-size:10px; text-transform:uppercase; letter-spacing:.5px; margin-top:2px; }
+    .cron-day { padding:14px; border:1px solid var(--border); border-radius:15px; margin-bottom:9px; background:#fff; }
+    .cron-day:last-child { border-bottom:1px solid var(--border); }
+    .cron-day.status-today { border-color:#e8ae78; background:#fff9f3; }
+    .cron-day.status-done { border-color:#abd9c7; background:#f5fcf9; }
+    .cron-day.status-pending { border-color:#efc78d; background:#fff9eb; }
+    .cron-day.status-ignored { opacity:.68; }
+    .cron-day-header { margin:0; align-items:flex-start; }
+    .cron-dia-nome { width:84px; color:var(--navy); }
+    .cron-content { flex:1; min-width:0; }
+    .cron-mat { color:var(--navy); font-weight:750; }
+    .cron-details { font-size:11px; color:var(--text-muted); margin-top:4px; display:flex; gap:8px; flex-wrap:wrap; }
+    .cron-actions { display:flex; gap:7px; flex-wrap:wrap; margin-top:10px; padding-left:84px; }
+    .cron-badge { border:1px solid transparent; }
+    .badge-pendente { background:#fff1cf; color:#9b5c00; border-color:#efd49d; }
+    .badge-planejado { background:#edf3f8; color:#4e687f; border-color:#dbe5ed; }
+    .badge-concluido { background:var(--bg-success); color:var(--text-success); border-color:var(--border-success); }
+    .plan-editor-help { color:var(--text-muted); font-size:11px; line-height:1.5; margin-bottom:14px; }
+    .plan-edit-row { padding:13px 0; border-bottom:1px solid var(--border); }
+    .plan-edit-day { font-weight:800; color:var(--navy); font-size:12px; margin-bottom:8px; }
+    .plan-edit-grid { display:grid; grid-template-columns:1.2fr 1.2fr .9fr .65fr .65fr; gap:8px; }
+    .plan-edit-grid select, .plan-edit-grid input { width:100%; min-width:0; }
+    .plan-editor-actions { display:flex; justify-content:flex-end; gap:9px; margin-top:16px; }
+
+    @media(max-width:1050px){ .plan-layout{grid-template-columns:1fr}.plan-edit-grid{grid-template-columns:1fr 1fr}.trail-compass{display:none} }
+    @media(max-width:700px){
+      .sidebar { position:fixed; top:auto; bottom:0; left:0; right:0; height:67px; width:100%; z-index:100; flex-direction:row; justify-content:space-around; overflow:visible; padding:7px 5px; border-top:1px solid rgba(255,255,255,.1); }
+      .sidebar-logo,.sidebar-user,.nav-group-label,.nav-sair,.sidebar .nav-item { display:none; }
+      .sidebar .nav-item.mobile-primary { display:flex; flex:1; flex-direction:column; gap:2px; padding:7px 3px; margin:0; font-size:9px; text-align:center; justify-content:center; border-radius:10px; }
+      .sidebar .nav-item i { font-size:19px; }
+      .nav-item.active { box-shadow:none; background:rgba(228,123,37,.2); }
+      .main-app { padding-bottom:67px; }
+      .topbar { padding:13px 15px; }
+      .content { padding:14px; }
+      .trail-hero { min-height:0; padding:24px 20px; border-radius:20px; }
+      .trail-hero h1 { font-size:25px; }
+      .metrics-grid { grid-template-columns:1fr 1fr; }
+      .metric-card { min-height:94px; padding:14px; align-items:flex-start; }
+      .metric-icon { width:34px; height:34px; border-radius:10px; }
+      .mode-tabs { grid-template-columns:1fr; }
+      .filter-grid { grid-template-columns:1fr; }
+      .plan-summary { grid-template-columns:1fr 1fr 1fr; }
+      .plan-edit-grid { grid-template-columns:1fr; }
+      .cron-actions { padding-left:0; }
+      .page-heading { align-items:flex-start; flex-direction:column; }
+      .manual-footer { align-items:stretch; flex-direction:column; }
+      .manual-footer .btn { width:100%; }
+    }
+
   </style>
 </head>
 <body>
@@ -217,9 +480,9 @@
 <div id="auth-screen" class="auth-wrap">
   <div class="auth-card">
     <div class="auth-logo">
-      <i class="ti ti-school"></i>
-      <div class="auth-logo-title">ConcursoIA</div>
-      <div class="auth-logo-sub">Sua plataforma inteligente de estudos</div>
+      <span class="auth-brand-mark">M</span>
+      <div class="auth-logo-title">MD Trilha</div>
+      <div class="auth-logo-sub">Seu caminho de estudo, com direção e evolução.</div>
     </div>
     <div class="auth-tabs">
       <div class="auth-tab active" id="tab-login" onclick="switchTab('login')">Entrar</div>
@@ -244,31 +507,48 @@
 <!-- MAIN APP -->
 <div id="main-app" class="main-app" style="display:none">
   <div class="sidebar">
-    <div class="sidebar-logo"><i class="ti ti-school"></i> ConcursoIA</div>
+    <div class="sidebar-logo"><span class="brand-mark">M</span><span><strong>MD</strong> Trilha</span></div>
     <div class="sidebar-user" id="sidebar-user"></div>
-    <div class="nav-item active" onclick="goTo('dashboard',this)"><i class="ti ti-layout-dashboard"></i> Dashboard</div>
-    <div class="nav-item" onclick="goTo('timer',this)"><i class="ti ti-clock"></i> Estudar agora</div>
-    <div class="nav-item" onclick="goTo('questoes',this)"><i class="ti ti-list-check"></i> Questões</div>
+    <div class="nav-group-label">Sua trilha</div>
+    <div class="nav-item mobile-primary active" onclick="goTo('dashboard',this)"><i class="ti ti-home"></i> Início</div>
+    <div class="nav-item mobile-primary" onclick="goTo('cronograma',this)"><i class="ti ti-calendar-event"></i> Plano semanal</div>
+    <div class="nav-item mobile-primary" onclick="goTo('timer',this)"><i class="ti ti-player-play"></i> Estudar agora</div>
+    <div class="nav-group-label">Prática</div>
+    <div class="nav-item mobile-primary" onclick="goTo('questoes',this)"><i class="ti ti-list-check"></i> Questões</div>
     <div class="nav-item" onclick="goTo('revisao',this)"><i class="ti ti-refresh"></i> Revisão</div>
-    <div class="nav-item" onclick="goTo('cronograma',this)"><i class="ti ti-calendar"></i> Cronograma</div>
+    <div class="nav-item mobile-primary" onclick="goTo('analise',this)"><i class="ti ti-chart-dots-3"></i> Desempenho</div>
+    <div class="nav-group-label">Conta</div>
     <div class="nav-item" onclick="goTo('historico',this)"><i class="ti ti-history"></i> Histórico</div>
-    <div class="nav-item" onclick="goTo('config',this)"><i class="ti ti-settings"></i> Configurações</div>
+    <div class="nav-item" onclick="goTo('config',this)"><i class="ti ti-adjustments"></i> Preferências</div>
     <div class="nav-sair"><div class="nav-item" onclick="fazerLogout()"><i class="ti ti-logout"></i> Sair</div></div>
   </div>
   <div class="main">
     <div class="topbar">
-      <span class="topbar-title" id="page-title">Dashboard</span>
+      <span class="topbar-title" id="page-title">Início</span>
       <div class="streak-badge"><i class="ti ti-flame"></i> <span id="streak-num">0</span> dias seguidos</div>
     </div>
     <div class="content">
 
       <!-- DASHBOARD -->
       <div class="page active" id="page-dashboard">
+        <section class="trail-hero">
+          <div class="trail-hero-copy">
+            <span class="eyebrow">Sua trilha de hoje</span>
+            <h1 id="hero-greeting">Vamos avançar?</h1>
+            <p id="hero-plan">Carregando o plano do dia...</p>
+            <div class="hero-actions">
+              <button class="btn btn-primary btn-lg" onclick="iniciarPlanoHoje()"><i class="ti ti-player-play"></i> Começar atividade</button>
+              <button class="btn btn-ghost btn-lg" onclick="irParaPratica('Conhecimentos Bancários','')"><i class="ti ti-bolt"></i> Prática rápida</button>
+            </div>
+          </div>
+          <div class="trail-compass" aria-hidden="true"><i class="ti ti-route"></i></div>
+        </section>
         <div class="metrics-grid">
-          <div class="metric-card"><div class="metric-label">Tempo hoje</div><div class="metric-value" id="m-hoje">—</div><div class="metric-sub" id="m-meta-label">Meta: 1h</div></div>
-          <div class="metric-card"><div class="metric-label">Esta semana</div><div class="metric-value" id="m-semana">—</div><div class="metric-sub">acumulado</div></div>
-          <div class="metric-card"><div class="metric-label">Questões</div><div class="metric-value" id="m-questoes">—</div><div class="metric-sub" id="m-acertos-sub">— acertos</div></div>
-          <div class="metric-card"><div class="metric-label">Desempenho</div><div class="metric-value" id="m-desempenho">—</div><div class="metric-sub">% de acerto</div></div>
+          <div class="metric-card"><div class="metric-icon accent"><i class="ti ti-clock-hour-4"></i></div><div><div class="metric-label">Tempo hoje</div><div class="metric-value" id="m-hoje">—</div><div class="metric-sub" id="m-meta-label">Meta: 1h</div></div></div>
+          <div class="metric-card"><div class="metric-icon warm"><i class="ti ti-calendar-check"></i></div><div><div class="metric-label">Consistência semanal</div><div class="metric-value" id="m-consistencia">—</div><div class="metric-sub" id="m-semana-sub">— estudados</div></div></div>
+          <div class="metric-card"><div class="metric-icon teal"><i class="ti ti-list-check"></i></div><div><div class="metric-label">Questões</div><div class="metric-value" id="m-questoes">—</div><div class="metric-sub" id="m-acertos-sub">— acertos</div></div></div>
+          <div class="metric-card"><div class="metric-icon success"><i class="ti ti-trending-up"></i></div><div><div class="metric-label">Desempenho</div><div class="metric-value" id="m-desempenho">—</div><div class="metric-sub">taxa de acerto</div></div></div>
+          <div id="m-semana" style="display:none"></div>
         </div>
         <div class="ai-box">
           <div class="ai-header"><i class="ti ti-sparkles"></i> Análise</div>
@@ -433,38 +713,80 @@
       <!-- QUESTÕES -->
       <div class="page" id="page-questoes">
         <div class="questoes-wrap">
-          <div id="q-select">
-            <div class="card-title" style="margin-bottom:14px">Praticar questões</div>
-            <div id="q-sessao-box" class="ai-box" style="display:none;margin-bottom:14px">
-              <div class="ai-header"><i class="ti ti-bolt"></i> Baseado no seu estudo de hoje</div>
-              <div id="q-sessao-info" style="font-size:13px"></div>
-              <button class="btn btn-primary btn-sm" style="margin-top:10px" onclick="usarSessaoAtual()">Usar disciplina e assunto de hoje ↗</button>
+          <div id="q-select" class="practice-builder">
+            <div class="page-heading">
+              <div><span class="eyebrow">Monte sua prática</span><h2>Escolha como quer responder</h2><p>Use o modo rápido, aplique filtros ou selecione cada questão manualmente.</p></div>
             </div>
-            <div class="section-title">Disciplina</div>
-            <div class="select-materia" id="disciplinas-questoes" style="margin-bottom:14px"></div>
-            <div class="section-title">Assunto <span style="color:var(--text-muted);font-weight:400;text-transform:none;letter-spacing:0">(opcional)</span></div>
-            <input type="text" id="q-assunto-input" placeholder="Ex: Concordância nominal, Planilhas..." style="width:100%;margin-bottom:14px">
-            <div class="section-title">Quantidade</div>
-            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">
-              <button class="btn btn-sm" onclick="setQQtd(5,this)">5</button>
-              <button class="btn btn-sm" onclick="setQQtd(10,this)">10</button>
-              <button class="btn btn-sm" onclick="setQQtd(20,this)">20</button>
-              <button class="btn btn-sm" onclick="setQQtd(30,this)">30</button>
-              <input type="number" id="q-custom" placeholder="Outro" min="1" max="50" style="width:80px">
+            <div id="q-sessao-box" class="context-card" style="display:none">
+              <div><span class="context-kicker"><i class="ti ti-bolt"></i> Baseado no estudo de hoje</span><div id="q-sessao-info" class="context-title"></div></div>
+              <button class="btn btn-sm" onclick="usarSessaoAtual()">Usar este conteúdo</button>
             </div>
-            <button class="btn btn-primary" onclick="iniciarQuestoes()">Praticar questões ↗</button>
-            <div id="q-erro" style="color:var(--text-danger);font-size:12px;margin-top:8px;display:none"></div>
+
+            <div class="mode-tabs" role="tablist">
+              <button class="mode-tab active" id="q-mode-rapida" onclick="setQModo('rapida',this)"><i class="ti ti-bolt"></i><span>Rápida<small>O sistema escolhe</small></span></button>
+              <button class="mode-tab" id="q-mode-personalizada" onclick="setQModo('personalizada',this)"><i class="ti ti-adjustments-horizontal"></i><span>Personalizada<small>Você define os filtros</small></span></button>
+              <button class="mode-tab" id="q-mode-manual" onclick="setQModo('manual',this)"><i class="ti ti-checkbox"></i><span>Seleção manual<small>Marque uma por uma</small></span></button>
+            </div>
+
+            <div class="builder-card">
+              <div class="builder-section">
+                <div class="section-title">1. Disciplina</div>
+                <div class="select-materia" id="disciplinas-questoes"></div>
+              </div>
+
+              <div id="q-filtros" class="advanced-filters" style="display:none">
+                <div class="builder-section">
+                  <div class="section-title">2. Filtros</div>
+                  <div class="filter-grid">
+                    <label class="field"><span>Assunto</span><input type="text" id="q-assunto-input" placeholder="Ex.: Sistema Financeiro Nacional"></label>
+                    <label class="field"><span>Banca</span><select id="q-banca"><option value="">Todas</option><option value="Cesgranrio">Cesgranrio</option><option value="Cebraspe">Cebraspe/Cespe</option><option value="FGV">FGV</option></select></label>
+                    <label class="field"><span>Origem</span><select id="q-origem"><option value="">Todas</option><option value="oficial">Oficiais</option><option value="nao_oficial">Não oficiais</option><option value="autoral">Autorais</option></select></label>
+                    <label class="field"><span>Dificuldade</span><select id="q-dificuldade"><option value="">Todas</option><option value="facil">Fácil</option><option value="media">Média</option><option value="dificil">Difícil</option></select></label>
+                    <label class="field"><span>Histórico</span><select id="q-status"><option value="">Todas</option><option value="erradas">Somente erradas</option><option value="nao_respondidas">Não respondidas</option><option value="respondidas">Já respondidas</option></select></label>
+                  </div>
+                </div>
+              </div>
+
+              <div id="q-quantidade-wrap" class="builder-section">
+                <div class="section-title">3. Quantidade</div>
+                <div class="quantity-picker">
+                  <button class="quantity-btn" onclick="setQQtd(5,this)">5</button>
+                  <button class="quantity-btn active" onclick="setQQtd(10,this)">10</button>
+                  <button class="quantity-btn" onclick="setQQtd(20,this)">20</button>
+                  <button class="quantity-btn" onclick="setQQtd(30,this)">30</button>
+                  <input type="number" id="q-custom" placeholder="Outro" min="1" max="50">
+                </div>
+              </div>
+
+              <button class="btn btn-primary btn-lg builder-submit" id="q-start-btn" onclick="iniciarQuestoes()"><i class="ti ti-player-play"></i> Começar prática</button>
+              <div id="q-erro" class="form-error" style="display:none"></div>
+            </div>
+
+            <div id="q-manual-wrap" class="manual-picker" style="display:none">
+              <div class="manual-toolbar"><div><strong>Selecione as questões</strong><span id="q-manual-count">0 selecionadas</span></div><button class="btn btn-sm" onclick="selecionarTodasManuais()">Selecionar visíveis</button></div>
+              <div id="q-manual-list" class="manual-list"></div>
+              <div class="manual-footer"><button class="btn" onclick="voltarFiltrosQuestoes()">Voltar aos filtros</button><button class="btn btn-primary" onclick="iniciarQuestoesSelecionadas()">Responder selecionadas</button></div>
+            </div>
           </div>
           <div id="q-loading" style="display:none" class="q-loading"><i class="ti ti-loader-2" style="font-size:30px;display:block;margin-bottom:12px"></i>Buscando questões...</div>
           <div id="q-quiz" style="display:none">
             <div class="q-header"><span id="q-counter" class="q-num"></span><span id="q-mat-label" style="font-size:12px;color:var(--text-muted)"></span></div>
             <div class="progress-bar"><div class="progress-fill" id="q-progress" style="width:0%"></div></div>
+            <div id="q-meta" class="q-meta"></div>
             <div id="q-enunciado" class="q-enunciado"></div>
             <div id="q-opcoes"></div>
-            <div id="q-resultado" class="q-resultado" style="display:none">
-              <div style="font-size:13px;font-weight:600;margin-bottom:6px" id="q-res-title"></div>
-              <div class="explicacao" id="q-explicacao"></div>
-              <button class="btn btn-primary btn-sm" style="margin-top:12px" onclick="proximaQuestao()">Próxima →</button>
+            <div id="q-resultado" class="q-resultado" style="display:none" aria-live="polite">
+              <div style="font-size:14px;font-weight:700" id="q-res-title"></div>
+              <div class="feedback-answer">
+                <span class="feedback-label">Resposta correta</span>
+                <div id="q-resposta-correta"></div>
+              </div>
+              <div class="feedback-explanation">
+                <span class="feedback-label">Por quê?</span>
+                <div class="explicacao" id="q-explicacao"></div>
+                <div class="feedback-source" id="q-fonte" style="display:none"></div>
+              </div>
+              <button class="btn btn-primary btn-sm" id="q-next-btn" style="margin-top:12px" onclick="proximaQuestao()">Próxima →</button>
             </div>
           </div>
           <div id="q-final" style="display:none">
@@ -476,10 +798,67 @@
               <div class="metric-card"><div class="metric-label">Total</div><div class="metric-value" id="fin-total">0</div></div>
             </div>
             <div id="fin-ai-msg" class="ai-box" style="margin-bottom:16px"></div>
+            <div id="q-final-breakdown" class="card" style="margin-bottom:16px"></div>
             <button class="btn btn-primary" onclick="voltarSelect()">Praticar novamente</button>
           </div>
         </div>
       </div>
+
+
+
+      <!-- DESEMPENHO -->
+      <div class="page" id="page-analise">
+        <div class="analytics-toolbar">
+          <div>
+            <div class="analytics-title">Mapa de desempenho</div>
+            <div class="analytics-subtitle">Cruza a frequência dos assuntos na base com o seu histórico de respostas para indicar prioridades.</div>
+          </div>
+          <div>
+            <label class="form-label" for="analise-disciplina">Disciplina</label>
+            <select id="analise-disciplina" onchange="renderAnalise()">
+              <option value="Conhecimentos Bancários">Conhecimentos Bancários</option>
+              <option value="Português">Português</option>
+              <option value="Matemática">Matemática</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="metrics-grid" id="analise-metricas">
+          <div class="metric-card"><div class="metric-label">Respondidas</div><div class="metric-value" id="an-total">—</div><div class="metric-sub">histórico detalhado</div></div>
+          <div class="metric-card"><div class="metric-label">Desempenho</div><div class="metric-value" id="an-pct">—</div><div class="metric-sub">taxa de acerto</div></div>
+          <div class="metric-card"><div class="metric-label">Assuntos praticados</div><div class="metric-value" id="an-assuntos">—</div><div class="metric-sub">com respostas registradas</div></div>
+          <div class="metric-card"><div class="metric-label">Prioridade atual</div><div class="metric-value" id="an-prioridade" style="font-size:15px">—</div><div class="metric-sub">menor desempenho relevante</div></div>
+        </div>
+
+        <div id="analise-loading" class="loading-spin">Montando diagnóstico...</div>
+        <div id="analise-conteudo" style="display:none">
+          <div class="analytics-grid">
+            <div class="card">
+              <div class="card-title">O que mais aparece nas provas/base oficial</div>
+              <div id="an-mais-cobrados" class="analytics-list"></div>
+              <div class="confidence-note" id="an-base-nota"></div>
+            </div>
+            <div class="card">
+              <div class="card-title">O que precisa melhorar</div>
+              <div id="an-prioridades"></div>
+              <div class="confidence-note">A prioridade considera taxa de erro e quantidade de respostas. Os resultados finalizados são salvos por assunto; o diagnóstico fica mais confiável depois de pelo menos 10 questões respondidas.</div>
+            </div>
+          </div>
+
+          <div class="card" style="margin-bottom:16px">
+            <div class="card-title">Desempenho por assunto</div>
+            <div class="analytics-table-wrap">
+              <table class="analytics-table">
+                <thead><tr><th>Assunto</th><th>Questões</th><th>Acertos</th><th>Desempenho</th><th>Ação</th></tr></thead>
+                <tbody id="an-tabela"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="insight-callout" id="an-recomendacao"><i class="ti ti-bulb"></i><div>Responda algumas questões para receber uma recomendação personalizada.</div></div>
+        </div>
+      </div>
+
 
       <!-- REVISÃO -->
       <div class="page" id="page-revisao">
@@ -513,12 +892,14 @@
           <div id="rev-quiz" style="display:none">
             <div class="q-header"><span id="rev-counter" class="q-num"></span><span id="rev-mat-label" style="font-size:12px;color:var(--text-muted)"></span></div>
             <div class="progress-bar"><div class="progress-fill" id="rev-progress" style="width:0%"></div></div>
+            <div id="rev-meta" class="q-meta"></div>
             <div id="rev-enunciado" class="q-enunciado"></div>
             <div id="rev-opcoes"></div>
-            <div id="rev-resultado" class="q-resultado" style="display:none">
-              <div style="font-size:13px;font-weight:600;margin-bottom:6px" id="rev-res-title"></div>
-              <div class="explicacao" id="rev-explicacao"></div>
-              <button class="btn btn-primary btn-sm" style="margin-top:12px" onclick="proximaRevisao()">Próxima →</button>
+            <div id="rev-resultado" class="q-resultado" style="display:none" aria-live="polite">
+              <div style="font-size:14px;font-weight:700" id="rev-res-title"></div>
+              <div class="feedback-answer"><span class="feedback-label">Resposta correta</span><div id="rev-resposta-correta"></div></div>
+              <div class="feedback-explanation"><span class="feedback-label">Por quê?</span><div class="explicacao" id="rev-explicacao"></div><div class="feedback-source" id="rev-fonte" style="display:none"></div></div>
+              <button class="btn btn-primary btn-sm" id="rev-next-btn" style="margin-top:12px" onclick="proximaRevisao()">Próxima →</button>
             </div>
           </div>
           <div id="rev-final" style="display:none">
@@ -530,14 +911,28 @@
               <div class="metric-card"><div class="metric-label">Total</div><div class="metric-value" id="revfin-total">0</div></div>
             </div>
             <div id="revfin-ai" class="ai-box" style="margin-bottom:16px"></div>
+            <div id="rev-final-breakdown" class="card" style="margin-bottom:16px"></div>
             <button class="btn btn-primary" onclick="voltarRevisao()">Nova revisão</button>
           </div>
         </div>
       </div>
 
-      <!-- CRONOGRAMA -->
+      <!-- PLANO SEMANAL -->
       <div class="page" id="page-cronograma">
-        <div class="card" style="max-width:520px"><div class="card-title">Cronograma semanal</div><div id="cronograma-list"><div class="loading-spin">Carregando...</div></div></div>
+        <div class="page-heading plan-heading">
+          <div><span class="eyebrow">Plano semanal</span><h2>Organize sua próxima etapa</h2><p>Defina disciplina, assunto, atividade e meta. Se um dia não for cumprido, a tarefa fica pendente até você decidir o que fazer.</p></div>
+          <button class="btn btn-primary" onclick="togglePlanEditor()"><i class="ti ti-pencil"></i> Editar plano</button>
+        </div>
+        <div id="plan-summary" class="plan-summary"></div>
+        <div class="plan-layout">
+          <div class="card plan-card"><div class="card-title">Esta semana</div><div id="cronograma-list"><div class="loading-spin">Carregando...</div></div></div>
+          <div class="card plan-editor-card" id="plan-editor" style="display:none">
+            <div class="card-title">Editar trilha semanal</div>
+            <div class="plan-editor-help">Escolha “Livre” para dias de descanso. Dias de descanso planejados não quebram a consistência semanal.</div>
+            <div id="cfg-cronograma"></div>
+            <div class="plan-editor-actions"><button class="btn" onclick="togglePlanEditor()">Cancelar</button><button class="btn btn-primary" onclick="salvarCronograma()">Salvar plano</button></div>
+          </div>
+        </div>
       </div>
 
       <!-- HISTÓRICO -->
@@ -560,9 +955,7 @@
               <option value="10800">3 horas</option>
             </select>
           </div>
-          <div class="settings-row"><div><div class="settings-label">Cronograma semanal</div><div class="settings-sub">Edite a disciplina de cada dia</div></div></div>
-          <div id="cfg-cronograma"></div>
-          <div style="margin-top:16px"><button class="btn btn-primary" onclick="salvarCronograma()">Salvar cronograma</button></div>
+          <div class="settings-row"><div><div class="settings-label">Plano semanal</div><div class="settings-sub">O plano agora é editado na aba “Plano semanal”.</div></div><button class="btn btn-sm" onclick="goTo('cronograma',[...document.querySelectorAll('.nav-item')].find(n=>n.textContent.includes('Plano semanal')))">Abrir plano</button></div>
         </div>
       </div>
 
@@ -599,10 +992,10 @@
     cronograma: { Segunda:'Conhecimentos Bancários', Terça:'Vendas e Negociação', Quarta:'Informática', Quinta:'Português', Sexta:'Revisão e Questões', Sábado:'Livre', Domingo:'Livre' }
   };
 
-  let timerInterval = null, timerSec = 0, timerPaused = false, timerMat = '', timerAssunto = '';
+  let timerInterval = null, timerSec = 0, timerPaused = false, timerMat = '', timerAssunto = '', timerMetaOverride = null, timerPlanoDataKey = null;
   let conteudoExtra = { tipo: null, texto: null, base64: null, mimeType: null }; // conteúdo extra para IA
-  let qMat = '', qQtd = 5, questoesList = [], qAtual = 0, qAcertos = 0, qErros = 0, qRespondida = false;
-  let revPeriodo = 'semana', revQtd = 20, revList = [], revAtual = 0, revAcertos = 0, revErros = 0, revRespondida = false;
+  let qMat = '', qQtd = 10, qModo = 'rapida', qBancoFiltrado = [], questoesList = [], qAtual = 0, qAcertos = 0, qErros = 0, qRespondida = false, qSessaoRespostas = [];
+  let revPeriodo = 'semana', revQtd = 20, revList = [], revAtual = 0, revAcertos = 0, revErros = 0, revRespondida = false, revSessaoRespostas = [];
 
   // ─── SUPABASE ─────────────────────────────────────────────
   async function supa(path, opts = {}) {
@@ -681,13 +1074,14 @@
     document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
     document.getElementById('page-' + page).classList.add('active');
     if (el) el.classList.add('active');
-    const titles = { dashboard:'Dashboard', timer:'Estudar agora', questoes:'Questões', revisao:'Revisão', cronograma:'Cronograma', historico:'Histórico', config:'Configurações' };
+    const titles = { dashboard:'Início', timer:'Estudar agora', questoes:'Questões', analise:'Desempenho', revisao:'Revisão', cronograma:'Plano semanal', historico:'Histórico', config:'Preferências' };
     document.getElementById('page-title').textContent = titles[page] || page;
     if (page === 'dashboard')  renderDashboard();
     if (page === 'cronograma') renderCronograma();
     if (page === 'historico')  renderHistorico();
     if (page === 'config')     renderConfig();
     if (page === 'questoes')   checkSessaoAtual();
+    if (page === 'analise')    renderAnalise();
     if (page === 'revisao')  { resetRevSelect(); carregarPreviewRevisao(); }
   }
 
@@ -697,6 +1091,152 @@
     if (revPeriodo === 'semana') { const d = new Date(); d.setDate(d.getDate() - d.getDay() + 1); return d.toISOString().slice(0,10); }
     const d = new Date(); d.setDate(1); return d.toISOString().slice(0,10);
   }
+
+  function escapeHtml(valor) {
+    return String(valor ?? '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
+  }
+
+  function normalizarQuestao(q) {
+    const opcoes = q.opcoes || q.alternativas || {};
+    const fontes = Array.isArray(q.fontes_oficiais) ? q.fontes_oficiais : [];
+    const fonteUtil = fontes.filter(f => !/^S\d+$/i.test(String(f))).join(' · ');
+    const origemTexto = normalizarTextoFiltro ? normalizarTextoFiltro(`${q.origem||''} ${q.tipo_origem||''} ${q.classificacao||''}`) : String(q.origem||'').toLowerCase();
+    const oficialDetectada = q.oficial === true || origemTexto.includes('oficial');
+    return {
+      ...q,
+      oficial: oficialDetectada,
+      id: q.id || q.questao_id || q.codigo || null,
+      disciplina: q.disciplina || q.disciplina_sugerida || 'Conhecimentos Bancários',
+      assunto: q.assunto || q.subassunto || 'Não classificado',
+      subassunto: q.subassunto || '',
+      banca: q.banca || q.banca_simulada || q.banca_informada_pci || '',
+      opcoes,
+      explicacao: q.explicacao || q.justificativa_gabarito || q.justificativa || q.comentario || q.metadata?.comentario || '',
+      fonteExibicao: q.fonte || q.fonte_oficial || fonteUtil || '',
+      origemExibicao: oficialDetectada ? 'Questão oficial' : q.origem === 'questao_autoral' ? 'Questão autoral' : q.origem === 'simulado_externo_pci' ? 'Questão externa' : ''
+    };
+  }
+
+  function respostaStorageKey() {
+    return 'concurso_respostas_' + (currentUser?.user?.id || currentUser?.user?.email || 'local');
+  }
+
+  function carregarRespostasLocais() {
+    try { return JSON.parse(localStorage.getItem(respostaStorageKey()) || '[]'); } catch(e) { return []; }
+  }
+
+  function registrarRespostaLocal(q, escolha, acertou, contexto='questoes') {
+    const item = normalizarQuestao(q);
+    const rows = carregarRespostasLocais();
+    rows.push({
+      id: item.id,
+      disciplina: item.disciplina,
+      assunto: item.assunto || 'Não classificado',
+      subassunto: item.subassunto || null,
+      banca: item.banca || null,
+      escolha,
+      gabarito: item.gabarito,
+      acertou: !!acertou,
+      contexto,
+      respondido_em: new Date().toISOString()
+    });
+    localStorage.setItem(respostaStorageKey(), JSON.stringify(rows.slice(-5000)));
+  }
+
+  function metaQuestaoHtml(q) {
+    const itens = [];
+    if (q.assunto) itens.push(`<span class="meta-chip"><i class="ti ti-tag"></i>${escapeHtml(q.assunto)}</span>`);
+    if (q.banca) itens.push(`<span class="meta-chip"><i class="ti ti-building"></i>${escapeHtml(q.banca)}</span>`);
+    if (q.dificuldade) itens.push(`<span class="meta-chip"><i class="ti ti-adjustments"></i>${escapeHtml(q.dificuldade)}</span>`);
+    if (q.origemExibicao) itens.push(`<span class="meta-chip"><i class="ti ti-file-check"></i>${escapeHtml(q.origemExibicao)}</span>`);
+    return itens.join('');
+  }
+
+  function preencherFeedback(prefixo, q, escolha, acertou) {
+    const resultado = document.getElementById(prefixo+'-resultado');
+    resultado.classList.remove('feedback-ok','feedback-erro');
+    resultado.classList.add(acertou ? 'feedback-ok' : 'feedback-erro');
+    const correta = q.opcoes?.[q.gabarito] ?? '';
+    document.getElementById(prefixo+'-res-title').textContent = acertou ? '✓ Resposta correta' : '✗ Resposta incorreta';
+    document.getElementById(prefixo+'-res-title').style.color = acertou ? 'var(--text-success)' : 'var(--text-danger)';
+    document.getElementById(prefixo+'-resposta-correta').innerHTML = `<strong>${escapeHtml(q.gabarito)}</strong> — ${escapeHtml(correta)}`;
+    const explicacao = q.explicacao || 'Esta questão ainda não possui justificativa cadastrada. O gabarito correto está destacado acima.';
+    document.getElementById(prefixo+'-explicacao').textContent = explicacao;
+    const fonteEl = document.getElementById(prefixo+'-fonte');
+    if (q.fonteExibicao) { fonteEl.textContent = 'Fonte: ' + q.fonteExibicao; fonteEl.style.display='block'; }
+    else fonteEl.style.display='none';
+    resultado.style.display = 'block';
+    resultado.scrollIntoView({ behavior:'smooth', block:'nearest' });
+  }
+
+
+  function codificarParametro(valor) {
+    return encodeURIComponent(String(valor ?? '')).replace(/'/g, '%27');
+  }
+
+  function agruparRespostasPorAssunto(respostas) {
+    const mapa = {};
+    respostas.forEach(r => {
+      const disciplina = r.disciplina || qMat || 'Conhecimentos Bancários';
+      const assunto = r.assunto || 'Não classificado';
+      const chave = disciplina + '||' + assunto;
+      if (!mapa[chave]) mapa[chave] = { disciplina, assunto, total:0, acertos:0, erros:0 };
+      mapa[chave].total++;
+      if (r.acertou) mapa[chave].acertos++; else mapa[chave].erros++;
+    });
+    return Object.values(mapa);
+  }
+
+  async function salvarResultadosPorAssunto(respostas) {
+    if (!currentUser?.user?.id || !respostas.length) return;
+    const payload = agruparRespostasPorAssunto(respostas).map(r => ({
+      user_id: currentUser.user.id,
+      disciplina: r.disciplina,
+      assunto: r.assunto,
+      total: r.total,
+      acertos: r.acertos,
+      erros: r.erros
+    }));
+    if (payload.length) await supa('/rest/v1/questoes_resultado', { method:'POST', body:JSON.stringify(payload) });
+  }
+
+  async function carregarPerformanceAssuntos(disciplina) {
+    try {
+      const rows = await supa(`/rest/v1/questoes_resultado?select=assunto,total,acertos&disciplina=eq.${encodeURIComponent(disciplina)}&assunto=not.is.null`, {headers:{'Range':'0-4999'}});
+      if (rows && rows.length) {
+        const mapa = {};
+        rows.forEach(r => {
+          const assunto = r.assunto || 'Não classificado';
+          if(!mapa[assunto]) mapa[assunto]={total:0,acertos:0};
+          mapa[assunto].total += Number(r.total)||0;
+          mapa[assunto].acertos += Number(r.acertos)||0;
+        });
+        return { fonte:'nuvem', rows:Object.entries(mapa).map(([assunto,d])=>({assunto,...d,pct:d.total?Math.round(d.acertos/d.total*100):0})) };
+      }
+    } catch(e) { console.warn('Histórico detalhado remoto indisponível; usando dados locais.', e); }
+
+    const mapa = {};
+    carregarRespostasLocais().filter(r=>r.disciplina===disciplina).forEach(r=>{
+      const assunto=r.assunto||'Não classificado';
+      if(!mapa[assunto])mapa[assunto]={total:0,acertos:0};
+      mapa[assunto].total++; if(r.acertou)mapa[assunto].acertos++;
+    });
+    return { fonte:'local', rows:Object.entries(mapa).map(([assunto,d])=>({assunto,...d,pct:d.total?Math.round(d.acertos/d.total*100):0})) };
+  }
+
+  function renderResumoSessao(containerId, respostas) {
+    const el = document.getElementById(containerId);
+    if (!el) return;
+    const mapa = {};
+    respostas.forEach(r => {
+      const a = r.assunto || 'Não classificado';
+      if (!mapa[a]) mapa[a] = {total:0, acertos:0};
+      mapa[a].total++; if (r.acertou) mapa[a].acertos++;
+    });
+    const rows = Object.entries(mapa).map(([assunto,d]) => ({assunto,...d,pct:Math.round(d.acertos/d.total*100)})).sort((a,b)=>a.pct-b.pct || b.total-a.total);
+    el.innerHTML = `<div class="card-title">Resultado por assunto</div>` + (rows.length ? `<div class="session-breakdown">${rows.map(r=>`<div class="session-topic"><span>${escapeHtml(r.assunto)}</span><div class="bar-track"><div class="bar-fill" style="width:${r.pct}%;background:${r.pct>=70?'var(--fill-success)':r.pct>=50?'var(--fill-warning)':'var(--fill-danger)'}"></div></div><strong>${r.pct}%</strong></div>`).join('')}</div>` : '<div class="empty" style="padding:10px">Sem dados por assunto.</div>');
+  }
+
 
   // ─── DISCIPLINAS ──────────────────────────────────────────
   function buildDisciplinas() {
@@ -718,53 +1258,166 @@
     });
   }
 
+  // ─── PLANO / DATAS ─────────────────────────────────────────
+  function salvarUserMeta() {
+    localStorage.setItem('concurso_cfg_' + currentUser?.user?.id, JSON.stringify(userMeta));
+  }
+
+  function normalizarPlanoDia(valor) {
+    if (!valor) return { disciplina:'Livre', assunto:'', atividade:'estudo', duracao:60, questoes:20 };
+    if (typeof valor === 'string') { if (valor === 'Revisão e Questões') return { disciplina:'Conhecimentos Bancários', assunto:'Revisão dos erros', atividade:'revisao', duracao:45, questoes:20 }; return { disciplina:valor, assunto:'', atividade:'estudo', duracao:60, questoes:20 }; }
+    return {
+      disciplina: valor.disciplina || 'Livre',
+      assunto: valor.assunto || '',
+      atividade: valor.atividade || 'estudo',
+      duracao: Math.max(10, Number(valor.duracao) || 60),
+      questoes: Math.max(1, Number(valor.questoes) || 20)
+    };
+  }
+
+  function dataLocalKey(data) {
+    const d = new Date(data);
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  }
+
+  function inicioSemanaLocal(ref = new Date()) {
+    const d = new Date(ref.getFullYear(), ref.getMonth(), ref.getDate());
+    const dia = d.getDay();
+    d.setDate(d.getDate() + (dia === 0 ? -6 : 1 - dia));
+    return d;
+  }
+
+  function dataDaSemana(diaNome, ref = new Date()) {
+    const ini = inicioSemanaLocal(ref);
+    const idx = DIAS_SEMANA.indexOf(diaNome);
+    const d = new Date(ini);
+    d.setDate(ini.getDate() + Math.max(0, idx));
+    return d;
+  }
+
+  function diaNomeDaData(data) { return DIAS_JS[new Date(data).getDay()]; }
+
+  function planoParaData(data) {
+    const chave = dataLocalKey(data);
+    const excecao = userMeta.excecoesPlano?.[chave];
+    if (excecao) return normalizarPlanoDia(excecao);
+    return normalizarPlanoDia(userMeta.cronograma?.[diaNomeDaData(data)]);
+  }
+
+  function formatarAtividade(plano) {
+    const nomes = { estudo:'Teoria / estudo', questoes:'Questões', revisao:'Revisão', simulado:'Simulado' };
+    return nomes[plano.atividade] || 'Estudo';
+  }
+
+  function sessaoCombinaPlano(sessao, plano) {
+    if (!sessao || !plano || plano.disciplina === 'Livre') return false;
+    if (sessao.disciplina !== plano.disciplina) return false;
+    if (!plano.assunto) return true;
+    const a = String(sessao.assunto || '').toLocaleLowerCase('pt-BR');
+    const b = String(plano.assunto).toLocaleLowerCase('pt-BR');
+    return a.includes(b) || b.includes(a);
+  }
+
+  function questaoResultadoCombinaPlano(row, plano) {
+    if (!row || !plano || plano.disciplina === 'Livre') return false;
+    if (row.disciplina !== plano.disciplina) return false;
+    if (!plano.assunto) return true;
+    const a = String(row.assunto || '').toLocaleLowerCase('pt-BR');
+    const b = String(plano.assunto).toLocaleLowerCase('pt-BR');
+    return a.includes(b) || b.includes(a);
+  }
+
+  function planoConcluido(data, plano, sessoes = [], resultados = []) {
+    const chave = dataLocalKey(data);
+    const ses = sessoes.filter(s => dataLocalKey(s.criado_em) === chave && sessaoCombinaPlano(s, plano));
+    const qs = resultados.filter(q => dataLocalKey(q.criado_em) === chave && questaoResultadoCombinaPlano(q, plano));
+    const totalQ = qs.reduce((s,q)=>s+(Number(q.total)||0),0);
+    if (plano.atividade === 'questoes' || plano.atividade === 'revisao' || plano.atividade === 'simulado') return totalQ >= Math.min(plano.questoes || 1, 5);
+    return ses.length > 0 || totalQ > 0;
+  }
+
+  function obterResumoPlano(sessoes = [], resultados = []) {
+    const hoje = new Date();
+    const hojeKey = dataLocalKey(hoje);
+    let planejadas = 0, concluidas = 0, pendentes = 0;
+    DIAS_SEMANA.forEach(dia => {
+      const data = dataDaSemana(dia, hoje);
+      const key = dataLocalKey(data);
+      if (key > hojeKey) return;
+      const plano = planoParaData(data);
+      if (plano.disciplina === 'Livre') return;
+      planejadas++;
+      const manual = userMeta.statusPlano?.[key];
+      if (manual === 'ignorado' || manual === 'movido') return;
+      if (manual === 'recuperada' || planoConcluido(data, plano, sessoes, resultados)) concluidas++;
+      else if (key < hojeKey) pendentes++;
+    });
+    return { planejadas, concluidas, pendentes, pct:planejadas ? Math.round(concluidas/planejadas*100) : 100 };
+  }
+
   // ─── DASHBOARD ────────────────────────────────────────────
   async function renderDashboard() {
     document.getElementById('streak-num').textContent = '...';
     try {
-      const hoje   = new Date().toISOString().slice(0,10);
-      const semIni = (() => { const d=new Date(); d.setDate(d.getDate()-d.getDay()+1); return d.toISOString().slice(0,10); })();
-      const [sesHoje, sesSem, qTodos] = await Promise.all([
-        supa(`/rest/v1/sessoes_estudo?select=tempo_segundos,streak&criado_em=gte.${hoje}T00:00:00&order=criado_em.desc`),
-        supa(`/rest/v1/sessoes_estudo?select=tempo_segundos&criado_em=gte.${semIni}T00:00:00`),
-        supa(`/rest/v1/questoes_resultado?select=disciplina,total,acertos`)
+      const hojeDate = new Date();
+      const hoje = dataLocalKey(hojeDate);
+      const semIni = dataLocalKey(inicioSemanaLocal(hojeDate));
+      const [sesHoje, sesSem, qTodos, qSem] = await Promise.all([
+        supa(`/rest/v1/sessoes_estudo?select=tempo_segundos,streak,disciplina,assunto,criado_em&criado_em=gte.${hoje}T00:00:00&order=criado_em.desc`),
+        supa(`/rest/v1/sessoes_estudo?select=tempo_segundos,disciplina,assunto,criado_em&criado_em=gte.${semIni}T00:00:00`),
+        supa(`/rest/v1/questoes_resultado?select=disciplina,assunto,total,acertos,erros,criado_em`),
+        supa(`/rest/v1/questoes_resultado?select=disciplina,assunto,total,acertos,erros,criado_em&criado_em=gte.${semIni}T00:00:00`)
       ]);
-      const tempoHoje = (sesHoje||[]).reduce((a,s)=>a+s.tempo_segundos, 0);
-      const tempoSem  = (sesSem||[]).reduce((a,s)=>a+s.tempo_segundos, 0);
+      const tempoHoje = (sesHoje||[]).reduce((a,s)=>a+(Number(s.tempo_segundos)||0), 0);
+      const tempoSem  = (sesSem||[]).reduce((a,s)=>a+(Number(s.tempo_segundos)||0), 0);
       const streak    = sesHoje?.[0]?.streak || 0;
-      const totQ = (qTodos||[]).reduce((a,q)=>a+q.total, 0);
-      const totA = (qTodos||[]).reduce((a,q)=>a+q.acertos, 0);
+      const totQ = (qTodos||[]).reduce((a,q)=>a+(Number(q.total)||0), 0);
+      const totA = (qTodos||[]).reduce((a,q)=>a+(Number(q.acertos)||0), 0);
       const pct  = totQ > 0 ? Math.round(totA/totQ*100) : null;
+      const resumoPlano = obterResumoPlano(sesSem||[], qSem||[]);
+      const planoHoje = planoParaData(hojeDate);
 
-      document.getElementById('streak-num').textContent    = streak;
-      document.getElementById('m-hoje').textContent        = fmtTime(tempoHoje);
-      document.getElementById('m-semana').textContent      = fmtTime(tempoSem);
-      document.getElementById('m-questoes').textContent    = totQ;
+      document.getElementById('streak-num').textContent = streak;
+      document.getElementById('m-hoje').textContent = fmtTime(tempoHoje);
+      document.getElementById('m-consistencia').textContent = resumoPlano.pct + '%';
+      document.getElementById('m-semana-sub').textContent = `${resumoPlano.concluidas} de ${resumoPlano.planejadas} atividades · ${fmtTime(tempoSem)}`;
+      document.getElementById('m-questoes').textContent = totQ;
       document.getElementById('m-acertos-sub').textContent = totA + ' acertos';
-      document.getElementById('m-desempenho').textContent  = pct !== null ? pct + '%' : '—';
+      document.getElementById('m-desempenho').textContent = pct !== null ? pct + '%' : '—';
       const metaMin = Math.round(userMeta.metaSec/60);
-      document.getElementById('m-meta-label').textContent  = 'Meta: ' + (metaMin>=60 ? Math.floor(metaMin/60)+'h'+(metaMin%60?String(metaMin%60).padStart(2,'0')+'min':'') : metaMin+'min');
+      document.getElementById('m-meta-label').textContent = 'Meta: ' + (metaMin>=60 ? Math.floor(metaMin/60)+'h'+(metaMin%60?String(metaMin%60).padStart(2,'0')+'min':'') : metaMin+'min');
+
+      const hora = hojeDate.getHours();
+      const saudacao = hora < 12 ? 'Bom dia' : hora < 18 ? 'Boa tarde' : 'Boa noite';
+      const nome = currentUser?.user?.user_metadata?.nome || currentUser?.user?.email?.split('@')[0] || '';
+      document.getElementById('hero-greeting').textContent = `${saudacao}${nome ? ', ' + nome : ''}.`;
+      document.getElementById('hero-plan').textContent = planoHoje.disciplina === 'Livre'
+        ? 'Hoje está marcado como descanso. Você pode manter a pausa ou fazer uma prática rápida.'
+        : `${planoHoje.disciplina}${planoHoje.assunto ? ' · ' + planoHoje.assunto : ''} — ${formatarAtividade(planoHoje)}, meta de ${planoHoje.atividade==='estudo' ? planoHoje.duracao+' min' : planoHoje.questoes+' questões'}.`;
 
       const porDisc = {};
-      (qTodos||[]).forEach(q => { if(!porDisc[q.disciplina]) porDisc[q.disciplina]={total:0,acertos:0}; porDisc[q.disciplina].total+=q.total; porDisc[q.disciplina].acertos+=q.acertos; });
+      (qTodos||[]).forEach(q => { if(!porDisc[q.disciplina]) porDisc[q.disciplina]={total:0,acertos:0}; porDisc[q.disciplina].total+=Number(q.total)||0; porDisc[q.disciplina].acertos+=Number(q.acertos)||0; });
       const mats = Object.entries(porDisc).sort((a,b)=>(b[1].acertos/b[1].total)-(a[1].acertos/a[1].total));
       document.getElementById('materias-bars').innerHTML = mats.length === 0
         ? '<div class="empty" style="padding:20px 0">Nenhuma questão ainda.</div>'
-        : mats.map(([mat,d]) => { const p=Math.round(d.acertos/d.total*100); const clr=p>=70?'var(--fill-success)':p>=50?'var(--fill-warning)':'var(--fill-danger)'; return `<div class="materia-bar"><div class="materia-name">${mat.split(' ')[0]}</div><div class="bar-track"><div class="bar-fill" style="width:${p}%;background:${clr}"></div></div><div class="bar-pct" style="color:${clr}">${p}%</div></div>`; }).join('');
+        : mats.map(([mat,d]) => { const p=Math.round(d.acertos/d.total*100); const clr=p>=70?'var(--fill-success)':p>=50?'var(--fill-warning)':'var(--fill-danger)'; return `<div class="materia-bar"><div class="materia-name">${escapeHtml(mat)}</div><div class="bar-track"><div class="bar-fill" style="width:${p}%;background:${clr}"></div></div><div class="bar-pct" style="color:${clr}">${p}%</div></div>`; }).join('');
 
-      const diaHoje = DIAS_JS[new Date().getDay()];
-      const proxima = userMeta.cronograma[diaHoje] || '—';
-      document.getElementById('proxima-materia').innerHTML = `<div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px">${diaHoje}</div><div style="font-size:17px;font-weight:600">${proxima}</div>`;
+      document.getElementById('proxima-materia').innerHTML = planoHoje.disciplina === 'Livre'
+        ? `<div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px">Hoje</div><div style="font-size:17px;font-weight:700;color:var(--navy)">Descanso planejado</div>`
+        : `<div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px">Hoje</div><div style="font-size:17px;font-weight:700;color:var(--navy)">${escapeHtml(planoHoje.disciplina)}</div><div style="font-size:12px;color:var(--text-muted);margin-top:4px">${escapeHtml(planoHoje.assunto || formatarAtividade(planoHoje))}</div>`;
 
       const aiMsgs = [];
-      if (totQ===0 && tempoSem===0) aiMsgs.push('Bem-vindo! Inicie seu primeiro estudo para receber análises personalizadas.');
-      else {
-        if (streak>0) aiMsgs.push(`<strong>${streak} dia${streak>1?'s':''}</strong> seguido${streak>1?'s':''} de estudo. Continue assim!`);
-        if (pct!==null && pct>=75) aiMsgs.push('Desempenho geral ótimo (' + pct + '%). Mantenha o ritmo!');
-        if (pct!==null && pct<55)  aiMsgs.push('Desempenho em ' + pct + '%. Recomendo fazer uma revisão antes de avançar.');
-        if (mats.length>0) { const fraca=mats[mats.length-1]; const fp=Math.round(fraca[1].acertos/fraca[1].total*100); if(fp<65) aiMsgs.push(`Desempenho em <strong>${fraca[0]}</strong> está em ${fp}%. Use a Revisão para praticar essa disciplina.`); }
-      }
-      document.getElementById('ai-msgs').innerHTML = aiMsgs.map(m=>`<div class="ai-msg">${m}</div>`).join('');
+      if (totQ===0 && tempoSem===0) aiMsgs.push('Comece sua primeira atividade para construir um diagnóstico personalizado.');
+      if (resumoPlano.pendentes>0) aiMsgs.push(`Você tem <strong>${resumoPlano.pendentes} atividade${resumoPlano.pendentes>1?'s':''} pendente${resumoPlano.pendentes>1?'s':''}</strong> nesta semana. Abra o Plano semanal para decidir como recuperar.`);
+      if (pct!==null && pct>=75) aiMsgs.push(`Seu desempenho geral está em <strong>${pct}%</strong>. Mantenha o ritmo e aumente gradualmente a dificuldade.`);
+      if (pct!==null && pct<55) aiMsgs.push(`Seu desempenho geral está em <strong>${pct}%</strong>. Priorize revisão e questões dos assuntos mais fracos.`);
+      if (mats.length>0) { const fraca=mats[mats.length-1]; const fp=Math.round(fraca[1].acertos/fraca[1].total*100); if(fp<65) aiMsgs.push(`A disciplina com maior necessidade agora é <strong>${fraca[0]}</strong> (${fp}%).`); }
+      const detalhadas = carregarRespostasLocais();
+      const porAssunto = {};
+      detalhadas.forEach(r => { const a=r.assunto||'Não classificado'; if(!porAssunto[a])porAssunto[a]={total:0,acertos:0}; porAssunto[a].total++; if(r.acertou)porAssunto[a].acertos++; });
+      const fracos = Object.entries(porAssunto).filter(([,d])=>d.total>=3).map(([a,d])=>({a,p:Math.round(d.acertos/d.total*100),t:d.total})).sort((x,y)=>x.p-y.p || y.t-x.t);
+      if(fracos.length && fracos[0].p<70) aiMsgs.push(`Seu ponto de atenção mais claro é <strong>${fracos[0].a}</strong> (${fracos[0].p}% em ${fracos[0].t} respostas).`);
+      document.getElementById('ai-msgs').innerHTML = (aiMsgs.length?aiMsgs:['Sua trilha está em dia. Continue avançando uma etapa por vez.']).map(m=>`<div class="ai-msg">${m}</div>`).join('');
     } catch(e) { console.error(e); }
   }
 
@@ -898,7 +1551,7 @@
     document.getElementById('timer-step2').style.display = 'block';
     document.getElementById('timer-mat-nome').textContent    = timerMat;
     document.getElementById('timer-assunto-nome').textContent = assunto ? 'Assunto: ' + assunto : '';
-    const ms = userMeta.metaSec;
+    const ms = timerMetaOverride || userMeta.metaSec;
     document.getElementById('timer-meta-label').textContent = ms>=3600 ? Math.floor(ms/3600)+'h'+(ms%3600?String(Math.floor((ms%3600)/60)).padStart(2,'0')+'min':'') : Math.floor(ms/60)+'min';
     timerSec = 0; timerPaused = false;
     clearInterval(timerInterval);
@@ -923,6 +1576,8 @@
     try { await supa('/rest/v1/sessoes_estudo', { method:'POST', body: JSON.stringify({ user_id: currentUser.user.id, disciplina: timerMat, assunto: timerAssunto||null, tempo_segundos: timerSec, streak }) }); }
     catch(e) { console.error('Erro ao salvar sessão:', e); }
     sessaoAtual = { materia: timerMat, assunto: timerAssunto, conteudoExtra: conteudoFinal };
+    if (timerPlanoDataKey) { userMeta.statusPlano = userMeta.statusPlano || {}; userMeta.statusPlano[timerPlanoDataKey] = 'recuperada'; salvarUserMeta(); }
+    timerMetaOverride = null; timerPlanoDataKey = null;
     const h=Math.floor(timerSec/3600), m=Math.floor((timerSec%3600)/60);
     // Reset completo
     timerMat = ''; timerAssunto = ''; conteudoExtra = { tipo: null };
@@ -954,7 +1609,7 @@
   function checkSessaoAtual() {
     const box = document.getElementById('q-sessao-box');
     if (sessaoAtual) {
-      box.style.display='block';
+      box.style.display='flex';
       const tipoLabel = sessaoAtual.conteudoExtra?.tipo === 'texto' ? ' · 📝 Resumo' : sessaoAtual.conteudoExtra?.tipo === 'imagem' ? ' · 📷 Imagem' : sessaoAtual.conteudoExtra?.tipo === 'pdf' ? ' · 📄 PDF' : '';
       document.getElementById('q-sessao-info').innerHTML = `${sessaoAtual.materia}${sessaoAtual.assunto?' — '+sessaoAtual.assunto:''}${tipoLabel ? `<span class="conteudo-badge">${tipoLabel}</span>` : ''}`;
     } else box.style.display = 'none';
@@ -967,7 +1622,22 @@
     document.getElementById('q-assunto-input').value = sessaoAtual.assunto||'';
   }
 
-  function setQQtd(n,el) { qQtd=n; document.getElementById('q-custom').value=''; document.querySelectorAll('#q-select .btn-sm').forEach(b=>b.style.fontWeight='400'); if(el)el.style.fontWeight='600'; }
+  function setQModo(modo, el) {
+    qModo = modo;
+    document.querySelectorAll('.mode-tab').forEach(b=>b.classList.remove('active'));
+    if (el) el.classList.add('active');
+    document.getElementById('q-filtros').style.display = modo === 'rapida' ? 'none' : 'block';
+    document.getElementById('q-quantidade-wrap').style.display = modo === 'manual' ? 'none' : 'block';
+    const btn = document.getElementById('q-start-btn');
+    btn.innerHTML = modo === 'manual' ? '<i class="ti ti-search"></i> Buscar questões' : '<i class="ti ti-player-play"></i> Começar prática';
+  }
+
+  function setQQtd(n,el) {
+    qQtd=n;
+    document.getElementById('q-custom').value='';
+    document.querySelectorAll('.quantity-btn').forEach(b=>b.classList.remove('active'));
+    if(el) el.classList.add('active');
+  }
 
   function embaralhar(arr) {
     const a = arr.slice();
@@ -978,62 +1648,160 @@
     return a;
   }
 
-  async function buscarQuestoesBanco(disciplina, assunto, qtd) {
-    let path = `/rest/v1/banco_questoes?select=*&disciplina=eq.${encodeURIComponent(disciplina)}`;
-    if (assunto) path += `&assunto=ilike.*${encodeURIComponent(assunto)}*`;
-    const rows = await supa(path);
-    return embaralhar(rows || []).slice(0, qtd);
+  function normalizarTextoFiltro(v) {
+    return String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
+  }
+
+  function lerFiltrosQuestoes() {
+    return {
+      assunto: document.getElementById('q-assunto-input')?.value.trim() || '',
+      banca: document.getElementById('q-banca')?.value || '',
+      origem: document.getElementById('q-origem')?.value || '',
+      dificuldade: document.getElementById('q-dificuldade')?.value || '',
+      status: document.getElementById('q-status')?.value || ''
+    };
+  }
+
+  function mapaUltimaResposta() {
+    const mapa = new Map();
+    carregarRespostasLocais().forEach(r => { if (r.id !== null && r.id !== undefined) mapa.set(String(r.id), r); });
+    return mapa;
+  }
+
+  function aplicarFiltrosQuestoes(rows, filtros = {}) {
+    const hist = mapaUltimaResposta();
+    const assunto = normalizarTextoFiltro(filtros.assunto);
+    return rows.filter(raw => {
+      const q = normalizarQuestao(raw);
+      if (assunto && !normalizarTextoFiltro(`${q.assunto} ${q.subassunto}`).includes(assunto)) return false;
+      if (filtros.banca) {
+        const b = normalizarTextoFiltro(q.banca);
+        const alvo = normalizarTextoFiltro(filtros.banca);
+        if (alvo === 'cebraspe' ? !(b.includes('cebraspe') || b.includes('cespe')) : !b.includes(alvo)) return false;
+      }
+      if (filtros.origem === 'oficial' && q.oficial !== true) return false;
+      if (filtros.origem === 'nao_oficial' && q.oficial === true) return false;
+      if (filtros.origem === 'autoral' && !(q.origem === 'questao_autoral' || q.banca_simulada || normalizarTextoFiltro(q.origemExibicao).includes('autoral'))) return false;
+      if (filtros.dificuldade && !normalizarTextoFiltro(q.dificuldade).includes(normalizarTextoFiltro(filtros.dificuldade))) return false;
+      const ultima = q.id !== null && q.id !== undefined ? hist.get(String(q.id)) : null;
+      if (filtros.status === 'erradas' && (!ultima || ultima.acertou)) return false;
+      if (filtros.status === 'nao_respondidas' && ultima) return false;
+      if (filtros.status === 'respondidas' && !ultima) return false;
+      return true;
+    }).map(normalizarQuestao);
+  }
+
+  async function buscarQuestoesBanco(disciplina, assunto, qtd = 50, filtros = {}) {
+    const path = `/rest/v1/banco_questoes?select=*&disciplina=eq.${encodeURIComponent(disciplina)}`;
+    const rows = await supa(path, { headers: { 'Range': '0-4999' } });
+    const filtradas = aplicarFiltrosQuestoes(rows || [], {...filtros, assunto:assunto || filtros.assunto});
+    return embaralhar(filtradas).slice(0, qtd);
+  }
+
+  function restaurarConstrutorQuestoes() {
+    document.querySelector('#q-select .builder-card').style.display='block';
+    document.querySelector('#q-select .mode-tabs').style.display='grid';
+    const context = document.getElementById('q-sessao-box'); if (context && sessaoAtual) context.style.display='flex';
+    document.getElementById('q-manual-wrap').style.display='none';
+  }
+
+  function voltarFiltrosQuestoes() { restaurarConstrutorQuestoes(); }
+
+  function renderSelecaoManual(rows) {
+    qBancoFiltrado = rows.slice(0, 250);
+    document.querySelector('#q-select .builder-card').style.display='none';
+    document.querySelector('#q-select .mode-tabs').style.display='none';
+    const context = document.getElementById('q-sessao-box'); if (context) context.style.display='none';
+    const wrap = document.getElementById('q-manual-wrap'); wrap.style.display='block';
+    document.getElementById('q-manual-list').innerHTML = qBancoFiltrado.length ? qBancoFiltrado.map((q,i)=>`
+      <label class="manual-item" id="manual-item-${i}">
+        <input type="checkbox" class="manual-check" value="${i}" onchange="atualizarContagemManual()">
+        <div><div class="manual-title">${escapeHtml(String(q.enunciado||'').slice(0,220))}${String(q.enunciado||'').length>220?'…':''}</div><div class="manual-meta">${escapeHtml(q.assunto||'Sem assunto')} · ${escapeHtml(q.banca||'Sem banca')} · ${escapeHtml(q.origemExibicao||'Base de questões')}</div></div>
+        <span class="manual-id">${escapeHtml(q.id||('#'+(i+1)))}</span>
+      </label>`).join('') : '<div class="empty">Nenhuma questão encontrada com esses filtros.</div>';
+    atualizarContagemManual();
+  }
+
+  function atualizarContagemManual() {
+    document.querySelectorAll('.manual-item').forEach(item => item.classList.toggle('selected', !!item.querySelector('input')?.checked));
+    const n = document.querySelectorAll('.manual-check:checked').length;
+    document.getElementById('q-manual-count').textContent = `${n} selecionada${n===1?'':'s'}`;
+  }
+
+  function selecionarTodasManuais() {
+    const checks = [...document.querySelectorAll('.manual-check')];
+    const marcar = checks.some(c=>!c.checked);
+    checks.slice(0,50).forEach(c=>c.checked=marcar);
+    if(!marcar) checks.forEach(c=>c.checked=false);
+    atualizarContagemManual();
+  }
+
+  function iniciarQuestoesSelecionadas() {
+    const indices = [...document.querySelectorAll('.manual-check:checked')].map(c=>Number(c.value));
+    if (!indices.length) { alert('Selecione pelo menos uma questão.'); return; }
+    if (indices.length > 50) { alert('Selecione no máximo 50 questões por prática.'); return; }
+    questoesList = indices.map(i=>qBancoFiltrado[i]).filter(Boolean);
+    iniciarListaQuestoes();
+  }
+
+  function iniciarListaQuestoes() {
+    qAtual=0; qAcertos=0; qErros=0; qSessaoRespostas=[];
+    document.getElementById('q-select').style.display='none';
+    document.getElementById('q-loading').style.display='none';
+    document.getElementById('q-quiz').style.display='block';
+    renderQuestao();
   }
 
   async function iniciarQuestoes() {
-    const custom = parseInt(document.getElementById('q-custom').value);
+    const custom = parseInt(document.getElementById('q-custom')?.value);
     if (custom>0) qQtd = Math.min(custom, 50);
-    const errEl  = document.getElementById('q-erro');
+    const errEl = document.getElementById('q-erro');
     if (!qMat) { errEl.style.display='block'; errEl.textContent='Selecione uma disciplina.'; return; }
-    errEl.style.display = 'none';
-    const assunto  = document.getElementById('q-assunto-input').value.trim();
-    document.getElementById('q-select').style.display  = 'none';
-    document.getElementById('q-loading').style.display = 'block';
+    errEl.style.display='none';
+    const filtros = qModo === 'rapida' ? {} : lerFiltrosQuestoes();
+    document.getElementById('q-loading').style.display='block';
     try {
-      questoesList = await buscarQuestoesBanco(qMat, assunto, qQtd);
-      if (questoesList.length === 0) {
-        document.getElementById('q-loading').style.display='none';
-        document.getElementById('q-select').style.display='block';
-        errEl.style.display='block';
-        errEl.textContent = assunto
-          ? `Nenhuma questão de "${qMat}" com o assunto "${assunto}" no banco ainda.`
-          : `Nenhuma questão de "${qMat}" no banco ainda.`;
-        return;
-      }
-      qAtual=0; qAcertos=0; qErros=0;
-      document.getElementById('q-loading').style.display = 'none';
-      document.getElementById('q-quiz').style.display    = 'block';
-      renderQuestao();
-    } catch(e) { document.getElementById('q-loading').style.display='none'; document.getElementById('q-select').style.display='block'; errEl.style.display='block'; errEl.textContent='Erro ao buscar questões. Tente novamente.'; console.error(e); }
+      const limite = qModo === 'manual' ? 250 : qQtd;
+      const rows = await buscarQuestoesBanco(qMat, filtros.assunto || '', limite, filtros);
+      document.getElementById('q-loading').style.display='none';
+      if (!rows.length) { errEl.style.display='block'; errEl.textContent='Nenhuma questão encontrada com essa combinação de filtros.'; return; }
+      if (qModo === 'manual') { renderSelecaoManual(rows); return; }
+      questoesList = rows;
+      iniciarListaQuestoes();
+    } catch(e) {
+      document.getElementById('q-loading').style.display='none';
+      errEl.style.display='block'; errEl.textContent='Erro ao buscar questões. Tente novamente.'; console.error(e);
+    }
   }
 
   function renderQuestao() {
     qRespondida = false;
-    const q = questoesList[qAtual];
-    document.getElementById('q-resultado').style.display = 'none';
+    const q = normalizarQuestao(questoesList[qAtual]);
+    questoesList[qAtual] = q;
+    const resultado = document.getElementById('q-resultado');
+    resultado.style.display = 'none';
+    resultado.classList.remove('feedback-ok','feedback-erro');
     document.getElementById('q-counter').textContent = `Questão ${qAtual+1} de ${questoesList.length}`;
-    document.getElementById('q-mat-label').textContent = qMat;
-    document.getElementById('q-progress').style.width = (qAtual/questoesList.length*100) + '%';
+    document.getElementById('q-mat-label').textContent = q.disciplina || qMat;
+    document.getElementById('q-progress').style.width = ((qAtual+1)/questoesList.length*100) + '%';
+    document.getElementById('q-meta').innerHTML = metaQuestaoHtml(q);
     document.getElementById('q-enunciado').textContent = q.enunciado;
-    document.getElementById('q-opcoes').innerHTML = Object.entries(q.opcoes).map(([l,t])=>`<div class="opcao" id="opt-${l}" onclick="responder('${l}')"><span class="opcao-letra">${l}</span><span>${t}</span></div>`).join('');
+    document.getElementById('q-opcoes').innerHTML = Object.entries(q.opcoes || {}).map(([l,t])=>`<div class="opcao" id="opt-${escapeHtml(l)}" onclick="responder('${String(l).replace(/'/g,"\\'")}')" role="button" tabindex="0"><span class="opcao-letra">${escapeHtml(l)}</span><span>${escapeHtml(t)}</span></div>`).join('');
+    document.getElementById('q-next-btn').textContent = qAtual === questoesList.length-1 ? 'Ver resultado →' : 'Próxima →';
   }
 
   function responder(letra) {
     if (qRespondida) return; qRespondida = true;
-    const q = questoesList[qAtual]; const acertou = letra === q.gabarito;
+    const q = normalizarQuestao(questoesList[qAtual]); const acertou = letra === q.gabarito;
     if (acertou) qAcertos++; else qErros++;
+    const registro = {disciplina:q.disciplina || qMat, assunto:q.assunto, acertou, gabarito:q.gabarito, escolha:letra};
+    qSessaoRespostas.push(registro);
+    registrarRespostaLocal(q, letra, acertou, 'questoes');
     document.querySelectorAll('#q-opcoes .opcao').forEach(el=>el.style.pointerEvents='none');
-    document.getElementById('opt-'+letra).classList.add(acertou?'correta':'errada');
-    if (!acertou) document.getElementById('opt-'+q.gabarito).classList.add('correta');
-    document.getElementById('q-res-title').textContent = acertou ? '✓ Correto!' : '✗ Incorreto — gabarito: '+q.gabarito;
-    document.getElementById('q-res-title').style.color = acertou ? 'var(--text-success)' : 'var(--text-danger)';
-    document.getElementById('q-explicacao').textContent = q.explicacao;
-    document.getElementById('q-resultado').style.display = 'block';
+    const escolhida = document.getElementById('opt-'+letra);
+    if (escolhida) escolhida.classList.add(acertou?'correta':'errada');
+    if (!acertou) { const correta=document.getElementById('opt-'+q.gabarito); if(correta) correta.classList.add('correta'); }
+    preencherFeedback('q', q, letra, acertou);
   }
 
   function proximaQuestao() { qAtual++; if(qAtual>=questoesList.length) finalizarQuestoes(); else renderQuestao(); }
@@ -1046,12 +1814,100 @@
     document.getElementById('fin-erros').textContent   = qErros;
     document.getElementById('fin-pct').textContent     = pct + '%';
     document.getElementById('fin-total').textContent   = total;
-    try { await supa('/rest/v1/questoes_resultado', { method:'POST', body: JSON.stringify({ user_id: currentUser.user.id, disciplina: qMat, assunto: document.getElementById('q-assunto-input').value.trim()||null, total, acertos: qAcertos, erros: qErros }) }); } catch(e) { console.error(e); }
+    try { await salvarResultadosPorAssunto(qSessaoRespostas); } catch(e) { console.error(e); }
     const aiTxt = pct>=80 ? `Excelente! ${pct}% de acerto. Continue!` : pct>=60 ? `${pct}% de acerto. Revise os erros para melhorar.` : `${pct}% de acerto. Recomendo rever o conteúdo antes de continuar.`;
     document.getElementById('fin-ai-msg').innerHTML = `<div class="ai-header"><i class="ti ti-sparkles"></i> Análise</div><div class="ai-msg">${aiTxt}</div>`;
+    renderResumoSessao('q-final-breakdown', qSessaoRespostas);
   }
 
-  function voltarSelect() { document.getElementById('q-final').style.display='none'; document.getElementById('q-select').style.display='block'; document.querySelectorAll('#disciplinas-questoes .mat-btn').forEach(b=>b.classList.remove('active')); qMat=''; }
+  function voltarSelect() { document.getElementById('q-final').style.display='none'; document.getElementById('q-quiz').style.display='none'; document.getElementById('q-select').style.display='block'; restaurarConstrutorQuestoes(); }
+
+
+
+  // ─── ANÁLISE DE DESEMPENHO ───────────────────────────────
+  function classificarPrioridade(pct, total) {
+    if (total < 3) return {texto:'Poucos dados', classe:'priority-mid'};
+    if (pct < 55) return {texto:'Alta prioridade', classe:'priority-high'};
+    if (pct < 70) return {texto:'Reforçar', classe:'priority-mid'};
+    return {texto:'Bom domínio', classe:'priority-good'};
+  }
+
+  function irParaPratica(disciplina, assunto) {
+    qMat = disciplina;
+    const nav = [...document.querySelectorAll('.nav-item')].find(n => n.textContent.trim().startsWith('Questões'));
+    goTo('questoes', nav);
+    setQModo(assunto ? 'personalizada' : 'rapida', document.getElementById(assunto ? 'q-mode-personalizada' : 'q-mode-rapida'));
+    document.querySelectorAll('#disciplinas-questoes .mat-btn').forEach(b => {
+      b.classList.toggle('active', b.textContent.trim() === disciplina);
+    });
+    document.getElementById('q-assunto-input').value = assunto || '';
+    window.scrollTo({top:0,behavior:'smooth'});
+  }
+
+  async function buscarDistribuicaoBase(disciplina) {
+    const filtro = `&disciplina=eq.${encodeURIComponent(disciplina)}`;
+    try {
+      const rows = await supa(`/rest/v1/banco_questoes?select=disciplina,assunto,oficial${filtro}`, {headers:{'Range':'0-4999'}});
+      const oficiais = (rows||[]).filter(r => r.oficial === true);
+      return { rows: oficiais.length >= 10 ? oficiais : (rows||[]), oficial: oficiais.length >= 10 };
+    } catch(e) {
+      const rows = await supa(`/rest/v1/banco_questoes?select=disciplina,assunto${filtro}`, {headers:{'Range':'0-4999'}});
+      return { rows: rows||[], oficial:false };
+    }
+  }
+
+  async function renderAnalise() {
+    const disciplina = document.getElementById('analise-disciplina')?.value || 'Conhecimentos Bancários';
+    const loading = document.getElementById('analise-loading');
+    const content = document.getElementById('analise-conteudo');
+    loading.style.display='block'; content.style.display='none';
+    try {
+      const [{rows:baseRows, oficial}, performance] = await Promise.all([
+        buscarDistribuicaoBase(disciplina),
+        carregarPerformanceAssuntos(disciplina)
+      ]);
+
+      const perfRows = (performance.rows || []).sort((a,b)=>a.pct-b.pct || b.total-a.total);
+      const total = perfRows.reduce((s,r)=>s+r.total,0);
+      const acertos = perfRows.reduce((s,r)=>s+r.acertos,0);
+      const pctGeral = total ? Math.round(acertos/total*100) : null;
+      const prioridade = perfRows.find(r=>r.total>=3 && r.pct<70) || perfRows[0] || null;
+
+      document.getElementById('an-total').textContent = total;
+      document.getElementById('an-pct').textContent = pctGeral===null?'—':pctGeral+'%';
+      document.getElementById('an-assuntos').textContent = perfRows.length;
+      document.getElementById('an-prioridade').textContent = prioridade ? prioridade.assunto : 'Sem dados';
+
+      const freq = {};
+      baseRows.forEach(r=>{ const a=r.assunto||'Não classificado'; freq[a]=(freq[a]||0)+1; });
+      const freqRows = Object.entries(freq).map(([assunto,qtd])=>({assunto,qtd})).sort((a,b)=>b.qtd-a.qtd).slice(0,8);
+      const maxFreq = Math.max(...freqRows.map(r=>r.qtd),1);
+      document.getElementById('an-mais-cobrados').innerHTML = freqRows.length ? freqRows.map(r=>`<div class="topic-row"><div class="topic-name" title="${escapeHtml(r.assunto)}">${escapeHtml(r.assunto)}</div><div class="topic-track"><div class="topic-fill" style="width:${Math.round(r.qtd/maxFreq*100)}%"></div></div><div class="topic-value">${r.qtd}</div></div>`).join('') : '<div class="empty" style="padding:20px 0">Nenhuma questão classificada nessa disciplina.</div>';
+      document.getElementById('an-base-nota').textContent = oficial ? `Frequência calculada sobre ${baseRows.length} questões marcadas como oficiais.` : `Frequência calculada sobre ${baseRows.length} questões disponíveis na base. Quando o campo “oficial” estiver importado, a análise prioriza somente provas oficiais.`;
+
+      const prioridades = perfRows.filter(r=>r.pct<75 || r.total<3).slice(0,5);
+      document.getElementById('an-prioridades').innerHTML = prioridades.length ? prioridades.map(r=>{
+        const cl=classificarPrioridade(r.pct,r.total);
+        return `<div class="priority-card"><div><div class="priority-name">${escapeHtml(r.assunto)}</div><div class="priority-sub">${r.acertos} acerto${r.acertos===1?'':'s'} em ${r.total} resposta${r.total===1?'':'s'} · ${r.pct}%</div></div><div class="priority-actions"><span class="priority-badge ${cl.classe}">${cl.texto}</span><button class="btn btn-sm" onclick="irParaPratica(decodeURIComponent('${codificarParametro(disciplina)}'),decodeURIComponent('${codificarParametro(r.assunto)}'))">Praticar</button></div></div>`;
+      }).join('') : '<div class="empty" style="padding:20px 0">Ainda não há erros suficientes para apontar uma prioridade.</div>';
+
+      document.getElementById('an-tabela').innerHTML = perfRows.length ? perfRows.map(r=>{
+        const clr=r.pct>=70?'var(--text-success)':r.pct>=50?'var(--text-warning)':'var(--text-danger)';
+        return `<tr><td>${escapeHtml(r.assunto)}</td><td>${r.total}</td><td>${r.acertos}</td><td style="font-weight:650;color:${clr}">${r.pct}%</td><td><button class="btn btn-sm" onclick="irParaPratica(decodeURIComponent('${codificarParametro(disciplina)}'),decodeURIComponent('${codificarParametro(r.assunto)}'))">Treinar</button></td></tr>`;
+      }).join('') : '<tr><td colspan="5"><div class="empty" style="padding:20px 0">Responda questões para formar seu histórico por assunto.</div></td></tr>';
+
+      let recomendacao = 'Comece por um dos assuntos mais frequentes da base e responda pelo menos 10 questões para formar um diagnóstico confiável.';
+      if(prioridade && prioridade.total>=3) recomendacao = `Priorize <strong>${escapeHtml(prioridade.assunto)}</strong>: seu desempenho atual é ${prioridade.pct}% em ${prioridade.total} respostas. Faça uma bateria curta e depois revise apenas os erros.`;
+      else if(pctGeral!==null && pctGeral>=80) recomendacao = `Seu desempenho geral está em <strong>${pctGeral}%</strong>. Mantenha revisões espaçadas e concentre novas questões nos assuntos ainda pouco praticados.`;
+      document.getElementById('an-recomendacao').innerHTML = `<i class="ti ti-bulb"></i><div>${recomendacao}</div>`;
+
+      loading.style.display='none'; content.style.display='block';
+    } catch(e) {
+      console.error(e);
+      loading.innerHTML = '<div class="empty">Não foi possível montar a análise agora. Verifique a conexão e as permissões da tabela banco_questoes.</div>';
+    }
+  }
+
 
   // ─── REVISÃO ──────────────────────────────────────────────
   function setRevPeriodo(p,el) { revPeriodo=p; document.getElementById('rev-semana-btn').style.fontWeight=p==='semana'?'600':'400'; document.getElementById('rev-mes-btn').style.fontWeight=p==='mes'?'600':'400'; carregarPreviewRevisao(); }
@@ -1114,7 +1970,7 @@
         return;
       }
 
-      revAtual=0; revAcertos=0; revErros=0;
+      revAtual=0; revAcertos=0; revErros=0; revSessaoRespostas=[];
       document.getElementById('rev-loading').style.display = 'none';
       document.getElementById('rev-quiz').style.display    = 'block';
       renderRevisao();
@@ -1123,26 +1979,30 @@
 
   function renderRevisao() {
     revRespondida = false;
-    const q = revList[revAtual];
-    document.getElementById('rev-resultado').style.display = 'none';
+    const q = normalizarQuestao(revList[revAtual]);
+    revList[revAtual] = q;
+    const resultado = document.getElementById('rev-resultado');
+    resultado.style.display = 'none';
+    resultado.classList.remove('feedback-ok','feedback-erro');
     document.getElementById('rev-counter').textContent = `Questão ${revAtual+1} de ${revList.length}`;
     document.getElementById('rev-mat-label').textContent = q.disciplina || '';
-    document.getElementById('rev-progress').style.width = (revAtual/revList.length*100) + '%';
+    document.getElementById('rev-progress').style.width = ((revAtual+1)/revList.length*100) + '%';
+    document.getElementById('rev-meta').innerHTML = metaQuestaoHtml(q);
     document.getElementById('rev-enunciado').textContent = q.enunciado;
-    document.getElementById('rev-opcoes').innerHTML = Object.entries(q.opcoes).map(([l,t])=>`<div class="opcao" id="ropt-${l}" onclick="responderRev('${l}')"><span class="opcao-letra">${l}</span><span>${t}</span></div>`).join('');
+    document.getElementById('rev-opcoes').innerHTML = Object.entries(q.opcoes || {}).map(([l,t])=>`<div class="opcao" id="ropt-${escapeHtml(l)}" onclick="responderRev('${String(l).replace(/'/g,"\\'")}')" role="button" tabindex="0"><span class="opcao-letra">${escapeHtml(l)}</span><span>${escapeHtml(t)}</span></div>`).join('');
+    document.getElementById('rev-next-btn').textContent = revAtual === revList.length-1 ? 'Ver resultado →' : 'Próxima →';
   }
 
   function responderRev(letra) {
     if (revRespondida) return; revRespondida=true;
-    const q=revList[revAtual]; const acertou=letra===q.gabarito;
+    const q=normalizarQuestao(revList[revAtual]); const acertou=letra===q.gabarito;
     if(acertou)revAcertos++;else revErros++;
+    revSessaoRespostas.push({disciplina:q.disciplina, assunto:q.assunto, acertou, gabarito:q.gabarito, escolha:letra});
+    registrarRespostaLocal(q, letra, acertou, 'revisao');
     document.querySelectorAll('#rev-opcoes .opcao').forEach(el=>el.style.pointerEvents='none');
-    document.getElementById('ropt-'+letra).classList.add(acertou?'correta':'errada');
-    if(!acertou) document.getElementById('ropt-'+q.gabarito).classList.add('correta');
-    document.getElementById('rev-res-title').textContent = acertou?'✓ Correto!':'✗ Incorreto — gabarito: '+q.gabarito;
-    document.getElementById('rev-res-title').style.color = acertou?'var(--text-success)':'var(--text-danger)';
-    document.getElementById('rev-explicacao').textContent = q.explicacao;
-    document.getElementById('rev-resultado').style.display = 'block';
+    const escolhida=document.getElementById('ropt-'+letra); if(escolhida) escolhida.classList.add(acertou?'correta':'errada');
+    if(!acertou) { const correta=document.getElementById('ropt-'+q.gabarito); if(correta) correta.classList.add('correta'); }
+    preencherFeedback('rev', q, letra, acertou);
   }
 
   function proximaRevisao() { revAtual++; if(revAtual>=revList.length) finalizarRevisao(); else renderRevisao(); }
@@ -1155,34 +2015,125 @@
     document.getElementById('revfin-erros').textContent   = revErros;
     document.getElementById('revfin-pct').textContent     = pct + '%';
     document.getElementById('revfin-total').textContent   = total;
-    try { await supa('/rest/v1/questoes_resultado', { method:'POST', body: JSON.stringify({ user_id: currentUser.user.id, disciplina: 'Revisão '+revPeriodo, assunto: null, total, acertos: revAcertos, erros: revErros }) }); } catch(e) {}
+    try { await salvarResultadosPorAssunto(revSessaoRespostas); } catch(e) { console.error(e); }
     const aiTxt = pct>=80?`Revisão excelente com ${pct}% de acerto!`:pct>=60?`${pct}% na revisão. Continue praticando os pontos fracos.`:`${pct}% na revisão. Recomendo rever os conteúdos antes da próxima revisão.`;
     document.getElementById('revfin-ai').innerHTML = `<div class="ai-header"><i class="ti ti-sparkles"></i> Análise</div><div class="ai-msg">${aiTxt}</div>`;
+    renderResumoSessao('rev-final-breakdown', revSessaoRespostas);
   }
 
   function voltarRevisao()  { document.getElementById('rev-final').style.display='none'; resetRevSelect(); }
   function resetRevSelect() { document.getElementById('rev-select').style.display='block'; document.getElementById('rev-quiz').style.display='none'; document.getElementById('rev-final').style.display='none'; }
 
   // ─── CRONOGRAMA ───────────────────────────────────────────
-  async function renderCronograma() {
-    const diaHoje = DIAS_JS[new Date().getDay()];
-    let sessoesSem = [];
-    try { const ini=getPeriodoInicio(); sessoesSem = await supa(`/rest/v1/sessoes_estudo?select=disciplina,assunto,criado_em&criado_em=gte.${ini}T00:00:00&order=criado_em.desc`) || []; } catch(e) {}
-    document.getElementById('cronograma-list').innerHTML = DIAS_SEMANA.map(d => {
-      const mat      = userMeta.cronograma[d] || 'Livre';
-      const isHoje   = d === diaHoje;
-      const livre    = mat === 'Livre';
-      const sessao   = sessoesSem.find(s => DIAS_JS[new Date(s.criado_em).getDay()] === d);
-      const dataFmt  = sessao ? new Date(sessao.criado_em).toLocaleDateString('pt-BR') : null;
-      return `<div class="cron-day">
-        <div class="cron-day-header">
-          <div class="cron-dia-nome">${d}</div>
-          <div class="cron-mat">${mat}</div>
-          ${isHoje?'<span class="cron-badge badge-hoje">Hoje</span>':livre?'<span class="cron-badge badge-livre">Livre</span>':''}
-        </div>
-        ${sessao?`<div class="cron-reg"><span class="tag-ok"><i class="ti ti-check"></i> ${dataFmt}</span>${sessao.assunto?`<span class="cron-assunto">${sessao.assunto}</span>`:''}</div>`:''}
-      </div>`;
+  function renderPlanEditor() {
+    const c = document.getElementById('cfg-cronograma');
+    if (!c) return;
+    const disciplinas = ['Conhecimentos Bancários','Vendas e Negociação','Informática','Português','Matemática','Livre'];
+    const atividades = [
+      ['estudo','Teoria / estudo'],['questoes','Questões'],['revisao','Revisão'],['simulado','Simulado']
+    ];
+    c.innerHTML = DIAS_SEMANA.map(dia => {
+      const p = normalizarPlanoDia(userMeta.cronograma?.[dia]);
+      const optsDisc = disciplinas.map(o=>`<option value="${escapeHtml(o)}"${o===p.disciplina?' selected':''}>${escapeHtml(o)}</option>`).join('');
+      const optsAtiv = atividades.map(([v,l])=>`<option value="${v}"${v===p.atividade?' selected':''}>${l}</option>`).join('');
+      return `<div class="plan-edit-row"><div class="plan-edit-day">${dia}</div><div class="plan-edit-grid">
+        <select id="cfg-dia-${dia}">${optsDisc}</select>
+        <input type="text" id="cfg-assunto-${dia}" value="${escapeHtml(p.assunto)}" placeholder="Assunto">
+        <select id="cfg-atividade-${dia}">${optsAtiv}</select>
+        <input type="number" id="cfg-duracao-${dia}" value="${p.duracao}" min="10" max="360" title="Minutos">
+        <input type="number" id="cfg-questoes-${dia}" value="${p.questoes}" min="1" max="200" title="Questões">
+      </div></div>`;
     }).join('');
+  }
+
+  function togglePlanEditor() {
+    const el = document.getElementById('plan-editor');
+    if (!el) return;
+    const abrir = el.style.display === 'none' || !el.style.display;
+    el.style.display = abrir ? 'block' : 'none';
+    if (abrir) renderPlanEditor();
+  }
+
+  function iniciarPlanoData(dataKey) {
+    const data = new Date(dataKey + 'T12:00:00');
+    const plano = planoParaData(data);
+    if (plano.disciplina === 'Livre') { irParaPratica('Conhecimentos Bancários',''); return; }
+    timerMat = plano.disciplina;
+    timerAssunto = plano.assunto || '';
+    timerMetaOverride = Math.max(10, plano.duracao || 60) * 60;
+    timerPlanoDataKey = dataKey;
+    const nav = [...document.querySelectorAll('.nav-item')].find(n=>n.textContent.includes('Estudar agora'));
+    goTo('timer', nav);
+    document.querySelectorAll('#disciplinas-timer .mat-btn').forEach(b=>b.classList.toggle('active', b.textContent.trim()===plano.disciplina));
+    document.getElementById('input-assunto').value = plano.assunto || '';
+    window.scrollTo({top:0,behavior:'smooth'});
+  }
+
+  function iniciarPlanoHoje() { iniciarPlanoData(dataLocalKey(new Date())); }
+
+  function ignorarPendencia(dataKey) {
+    userMeta.statusPlano = userMeta.statusPlano || {};
+    userMeta.statusPlano[dataKey] = 'ignorado';
+    salvarUserMeta(); renderCronograma(); renderDashboard();
+  }
+
+  function moverPendencia(dataKey) {
+    const origem = new Date(dataKey + 'T12:00:00');
+    const tarefa = planoParaData(origem);
+    userMeta.excecoesPlano = userMeta.excecoesPlano || {};
+    userMeta.statusPlano = userMeta.statusPlano || {};
+    let destino = null;
+    for (let i=1;i<=14;i++) {
+      const d = new Date(origem); d.setDate(d.getDate()+i);
+      const key = dataLocalKey(d); const plano = planoParaData(d);
+      if (plano.disciplina === 'Livre' && !userMeta.excecoesPlano[key]) { destino={d,key}; break; }
+    }
+    if (!destino) { alert('Não encontrei um dia livre nas próximas duas semanas. Edite o plano manualmente.'); return; }
+    userMeta.excecoesPlano[destino.key] = tarefa;
+    userMeta.statusPlano[dataKey] = 'movido';
+    salvarUserMeta();
+    alert(`Atividade movida para ${destino.d.toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'2-digit'})}.`);
+    renderCronograma(); renderDashboard();
+  }
+
+  async function renderCronograma() {
+    const hoje = new Date();
+    const hojeKey = dataLocalKey(hoje);
+    const ini = inicioSemanaLocal(hoje);
+    const fim = new Date(ini); fim.setDate(fim.getDate()+7);
+    let sessoesSem = [], qSem = [];
+    try {
+      [sessoesSem,qSem] = await Promise.all([
+        supa(`/rest/v1/sessoes_estudo?select=disciplina,assunto,tempo_segundos,criado_em&criado_em=gte.${dataLocalKey(ini)}T00:00:00&criado_em=lt.${dataLocalKey(fim)}T00:00:00&order=criado_em.desc`),
+        supa(`/rest/v1/questoes_resultado?select=disciplina,assunto,total,acertos,erros,criado_em&criado_em=gte.${dataLocalKey(ini)}T00:00:00&criado_em=lt.${dataLocalKey(fim)}T00:00:00`)
+      ]);
+    } catch(e) { console.error(e); }
+    const resumo = obterResumoPlano(sessoesSem||[], qSem||[]);
+    document.getElementById('plan-summary').innerHTML = `
+      <div class="plan-summary-item"><div class="plan-summary-value">${resumo.pct}%</div><div class="plan-summary-label">Consistência</div></div>
+      <div class="plan-summary-item"><div class="plan-summary-value">${resumo.concluidas}/${resumo.planejadas}</div><div class="plan-summary-label">Concluídas</div></div>
+      <div class="plan-summary-item"><div class="plan-summary-value">${resumo.pendentes}</div><div class="plan-summary-label">Pendentes</div></div>`;
+
+    document.getElementById('cronograma-list').innerHTML = DIAS_SEMANA.map(dia => {
+      const data = dataDaSemana(dia, hoje); const key = dataLocalKey(data); const plano = planoParaData(data);
+      const livre = plano.disciplina === 'Livre'; const isHoje = key === hojeKey; const futuro = key > hojeKey;
+      const manual = userMeta.statusPlano?.[key];
+      const concluido = manual === 'recuperada' || planoConcluido(data, plano, sessoesSem||[], qSem||[]);
+      let status='planned', badge='<span class="cron-badge badge-planejado">Planejado</span>', classe='';
+      if (livre) { status='free'; badge='<span class="cron-badge badge-livre">Descanso</span>'; }
+      else if (manual==='ignorado') { status='ignored'; classe='status-ignored'; badge='<span class="cron-badge badge-livre">Ignorado</span>'; }
+      else if (manual==='movido') { status='moved'; classe='status-ignored'; badge='<span class="cron-badge badge-planejado">Movido</span>'; }
+      else if (concluido) { status='done'; classe='status-done'; badge='<span class="cron-badge badge-concluido">Concluído</span>'; }
+      else if (!futuro && !isHoje) { status='pending'; classe='status-pending'; badge='<span class="cron-badge badge-pendente">Pendente</span>'; }
+      else if (isHoje) { status='today'; classe='status-today'; badge='<span class="cron-badge badge-hoje">Hoje</span>'; }
+
+      const detalheMeta = plano.atividade==='estudo' ? `${plano.duracao} min` : `${plano.questoes} questões`;
+      let actions='';
+      if (status==='pending') actions = `<div class="cron-actions"><button class="btn btn-primary btn-sm" onclick="iniciarPlanoData('${key}')">Fazer agora</button><button class="btn btn-sm" onclick="moverPendencia('${key}')">Mover para dia livre</button><button class="btn btn-sm" onclick="ignorarPendencia('${key}')">Ignorar</button></div>`;
+      else if (status==='today' || (status==='planned' && !livre)) actions = `<div class="cron-actions"><button class="btn btn-primary btn-sm" onclick="iniciarPlanoData('${key}')">Começar atividade</button></div>`;
+      return `<div class="cron-day ${classe}"><div class="cron-day-header"><div class="cron-dia-nome">${dia}<div style="font-size:10px;color:var(--text-muted);font-weight:500;margin-top:2px">${data.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})}</div></div><div class="cron-content"><div class="cron-mat">${escapeHtml(plano.disciplina)}</div>${!livre?`<div class="cron-details"><span>${escapeHtml(plano.assunto||'Assunto livre')}</span><span>•</span><span>${formatarAtividade(plano)}</span><span>•</span><span>${detalheMeta}</span></div>`:''}</div>${badge}</div>${actions}</div>`;
+    }).join('');
+    renderPlanEditor();
   }
 
   // ─── HISTÓRICO ────────────────────────────────────────────
@@ -1196,7 +2147,8 @@
       document.getElementById('historico-list').innerHTML = rows.map(s => {
         const data  = new Date(s.criado_em).toLocaleDateString('pt-BR');
         const tempo = fmtTime(s.tempo_segundos);
-        const q     = (qRows||[]).find(q=>q.criado_em.slice(0,10)===s.criado_em.slice(0,10) && q.disciplina===s.disciplina);
+        const qMatch = (qRows||[]).filter(q=>q.criado_em.slice(0,10)===s.criado_em.slice(0,10) && q.disciplina===s.disciplina);
+        const q = qMatch.length ? qMatch.reduce((acc,r)=>({acertos:acc.acertos+(Number(r.acertos)||0),erros:acc.erros+(Number(r.erros)||0)}),{acertos:0,erros:0}) : null;
         return `<div class="hist-row"><div class="hist-data">${data}</div><div class="hist-mat"><div>${s.disciplina}</div>${s.assunto?`<div class="hist-assunto">${s.assunto}</div>`:''}</div><div class="hist-stats"><span>${tempo}</span>${q?`<span class="hist-acerto">✓${q.acertos}</span><span class="hist-erro">✗${q.erros}</span>`:''}</div></div>`;
       }).join('');
     } catch(e) { document.getElementById('historico-list').innerHTML='<div class="empty">Erro ao carregar histórico.</div>'; }
@@ -1206,25 +2158,34 @@
   function carregarConfig() {
     const saved = localStorage.getItem('concurso_cfg_' + currentUser?.user?.id);
     if (saved) try { userMeta = Object.assign(userMeta, JSON.parse(saved)); } catch(e) {}
+    userMeta.cronograma = userMeta.cronograma || {};
+    userMeta.excecoesPlano = userMeta.excecoesPlano || {};
+    userMeta.statusPlano = userMeta.statusPlano || {};
   }
 
   function renderConfig() {
     document.getElementById('cfg-meta').value = userMeta.metaSec;
-    const allOpts = ['Conhecimentos Bancários','Vendas e Negociação','Informática','Português','Revisão e Questões','Livre'];
-    document.getElementById('cfg-cronograma').innerHTML = DIAS_SEMANA.map(d => {
-      const val  = userMeta.cronograma[d] || 'Livre';
-      const opts = allOpts.map(o=>`<option value="${o}"${o===val?' selected':''}>${o}</option>`).join('');
-      return `<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border)"><span style="font-size:13px;width:70px;flex-shrink:0;font-weight:500">${d}</span><select id="cfg-dia-${d}" style="flex:1">${opts}</select></div>`;
-    }).join('');
   }
 
-  function salvarMeta() { userMeta.metaSec=parseInt(document.getElementById('cfg-meta').value); localStorage.setItem('concurso_cfg_'+currentUser?.user?.id, JSON.stringify(userMeta)); }
+  function salvarMeta() { userMeta.metaSec=parseInt(document.getElementById('cfg-meta').value); salvarUserMeta(); }
 
   function salvarCronograma() {
-    DIAS_SEMANA.forEach(d => { const el=document.getElementById('cfg-dia-'+d); if(el) userMeta.cronograma[d]=el.value; });
-    localStorage.setItem('concurso_cfg_'+currentUser?.user?.id, JSON.stringify(userMeta));
-    alert('Cronograma salvo!');
+    userMeta.cronograma = userMeta.cronograma || {};
+    DIAS_SEMANA.forEach(dia => {
+      const disciplina = document.getElementById('cfg-dia-'+dia)?.value || 'Livre';
+      userMeta.cronograma[dia] = {
+        disciplina,
+        assunto: disciplina==='Livre' ? '' : (document.getElementById('cfg-assunto-'+dia)?.value.trim() || ''),
+        atividade: document.getElementById('cfg-atividade-'+dia)?.value || 'estudo',
+        duracao: Number(document.getElementById('cfg-duracao-'+dia)?.value) || 60,
+        questoes: Number(document.getElementById('cfg-questoes-'+dia)?.value) || 20
+      };
+    });
+    salvarUserMeta();
+    document.getElementById('plan-editor').style.display='none';
+    renderCronograma(); renderDashboard();
   }
+
 </script>
 </body>
 </html>
