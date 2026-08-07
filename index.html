@@ -1105,7 +1105,7 @@
     return {
       ...q,
       oficial: oficialDetectada,
-      id: q.id || q.questao_id || q.codigo || null,
+      id: q.codigo || q.questao_id || q.id || null,
       disciplina: q.disciplina || q.disciplina_sugerida || 'Conhecimentos Bancários',
       assunto: q.assunto || q.subassunto || 'Não classificado',
       subassunto: q.subassunto || '',
@@ -1673,6 +1673,7 @@
     const assunto = normalizarTextoFiltro(filtros.assunto);
     return rows.filter(raw => {
       const q = normalizarQuestao(raw);
+      if (q.ativa === false || q.anulada === true || !q.gabarito || !q.opcoes || !(q.gabarito in q.opcoes)) return false;
       if (assunto && !normalizarTextoFiltro(`${q.assunto} ${q.subassunto}`).includes(assunto)) return false;
       if (filtros.banca) {
         const b = normalizarTextoFiltro(q.banca);
@@ -1847,9 +1848,10 @@
   async function buscarDistribuicaoBase(disciplina) {
     const filtro = `&disciplina=eq.${encodeURIComponent(disciplina)}`;
     try {
-      const rows = await supa(`/rest/v1/banco_questoes?select=disciplina,assunto,oficial${filtro}`, {headers:{'Range':'0-4999'}});
-      const oficiais = (rows||[]).filter(r => r.oficial === true);
-      return { rows: oficiais.length >= 10 ? oficiais : (rows||[]), oficial: oficiais.length >= 10 };
+      const rows = await supa(`/rest/v1/banco_questoes?select=disciplina,assunto,oficial,ativa,anulada${filtro}`, {headers:{'Range':'0-4999'}});
+      const validas = (rows||[]).filter(r => r.ativa !== false && r.anulada !== true);
+      const oficiais = validas.filter(r => r.oficial === true);
+      return { rows: oficiais.length >= 10 ? oficiais : validas, oficial: oficiais.length >= 10 };
     } catch(e) {
       const rows = await supa(`/rest/v1/banco_questoes?select=disciplina,assunto${filtro}`, {headers:{'Range':'0-4999'}});
       return { rows: rows||[], oficial:false };
