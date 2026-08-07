@@ -1000,11 +1000,23 @@
   // ─── SUPABASE ─────────────────────────────────────────────
   async function supa(path, opts = {}) {
     const token = currentUser?.access_token || SUPA_KEY;
+    const { headers: extraHeaders = {}, ...restOpts } = opts;
     const res = await fetch(SUPA_URL + path, {
-      headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json', 'Prefer': 'return=representation', ...(opts.headers||{}) },
-      ...opts
+      ...restOpts,
+      headers: {
+        'apikey': SUPA_KEY,
+        'Authorization': 'Bearer ' + token,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=representation',
+        ...extraHeaders
+      }
     });
-    if (!res.ok && res.status !== 204) { const e = await res.json().catch(()=>({})); throw new Error(e.message || res.status); }
+    if (!res.ok && res.status !== 204) {
+      const e = await res.json().catch(()=>({}));
+      const detail = e.message || e.error_description || e.details || e.hint || String(res.status);
+      console.error('Supabase:', res.status, e, path);
+      throw new Error(detail);
+    }
     if (res.status === 204) return null;
     return res.json();
   }
