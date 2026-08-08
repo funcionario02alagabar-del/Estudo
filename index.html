@@ -527,9 +527,13 @@
   <div class="onboarding-card">
     <div class="onboarding-head">
       <h2 id="onboarding-title">Monte sua rotina</h2>
-      <p id="onboarding-sub">O conteúdo do BNB é o mesmo para todos. Aqui você define apenas quanto tempo a sua trilha pode usar em cada dia.</p>
+      <p id="onboarding-sub">Escolha seu foco atual. Seu histórico de estudo será reaproveitado quando você trocar de concurso.</p>
     </div>
-    <div class="form-group"><label class="form-label">Concurso-alvo</label><select class="form-input" id="onb-concurso" disabled><option>BNB — Analista Bancário 1</option></select></div>
+    <div class="form-group">
+      <label class="form-label">Concurso-alvo</label>
+      <select class="form-input" id="onb-concurso" onchange="atualizarNotaConcurso()"></select>
+      <div id="onb-concurso-note" style="font-size:12px;color:var(--text-muted);margin-top:6px"></div>
+    </div>
     <div class="form-group"><label class="form-label">Seu nível atual</label><select class="form-input" id="onb-nivel"><option value="comecando">Começando agora</option><option value="ja_estudo">Já estudo para concursos</option><option value="avancado">Avançado</option></select></div>
     <div class="preset-row"><button class="preset-btn" onclick="aplicarPresetRotina('leve')">Leve</button><button class="preset-btn" onclick="aplicarPresetRotina('regular')">Regular</button><button class="preset-btn" onclick="aplicarPresetRotina('intensivo')">Intensivo</button><button class="preset-btn" onclick="aplicarPresetRotina('personalizado')">Personalizado</button></div>
     <div class="routine-grid" id="onb-routine-grid"></div>
@@ -541,7 +545,7 @@
 <div id="main-app" class="main-app" style="display:none">
   <div class="sidebar">
     <div class="sidebar-logo"><span class="brand-mark">M</span><span><strong>MD</strong> Trilha</span></div>
-    <div class="sidebar-user" id="sidebar-user"></div>
+    <div class="sidebar-user" id="sidebar-user"></div><div id="sidebar-concurso" style="font-size:11px;color:rgba(255,255,255,.65);padding:0 18px 14px"></div>
     <div class="nav-group-label">Sua trilha</div>
     <div class="nav-item mobile-primary active" onclick="goTo('dashboard',this)"><i class="ti ti-home"></i> Início</div>
     <div class="nav-item mobile-primary" onclick="goTo('cronograma',this)"><i class="ti ti-calendar-event"></i> Plano semanal</div>
@@ -615,39 +619,6 @@
             <div class="select-materia" id="disciplinas-timer"></div>
             <div class="section-title">Assunto específico</div>
             <input type="text" id="input-assunto" placeholder="Ex: Concordância verbal, Juros simples..." style="width:100%;margin-bottom:16px">
-
-            <div class="section-title">Conteúdo para a IA gerar questões <span style="color:var(--text-muted);font-weight:400;text-transform:none;letter-spacing:0">(opcional — enriquece as questões)</span></div>
-            <div class="conteudo-tabs">
-              <div class="conteudo-tab active" onclick="switchConteudo('resumo',this)"><i class="ti ti-pencil"></i> Resumo</div>
-              <div class="conteudo-tab" onclick="switchConteudo('imagem',this)"><i class="ti ti-photo"></i> Imagem</div>
-              <div class="conteudo-tab" onclick="switchConteudo('pdf',this)"><i class="ti ti-file-type-pdf"></i> PDF</div>
-            </div>
-
-            <div class="conteudo-panel active" id="panel-resumo">
-              <textarea id="input-resumo" placeholder="Escreva aqui um resumo do que você estudou. A IA vai gerar questões com base nesse conteúdo..." style="width:100%;min-height:90px;padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface-0);color:var(--text-primary);font-size:13px;resize:vertical;margin-bottom:4px;font-family:var(--font-sans)"></textarea>
-              <div style="font-size:11px;color:var(--text-muted)">Se deixar em branco, a IA usa só o assunto digitado acima.</div>
-            </div>
-
-            <div class="conteudo-panel" id="panel-imagem">
-              <div class="upload-area" onclick="document.getElementById('input-imagem').click()">
-                <i class="ti ti-photo-up"></i>
-                <p>Clique para subir uma foto do caderno, apostila ou slide</p>
-                <p style="font-size:11px;margin-top:4px">JPG, PNG, WEBP</p>
-              </div>
-              <input type="file" id="input-imagem" accept="image/*" style="display:none" onchange="previsualizarArquivo('imagem')">
-              <div id="preview-imagem" style="display:none" class="upload-preview"><i class="ti ti-check"></i><span id="nome-imagem"></span></div>
-            </div>
-
-            <div class="conteudo-panel" id="panel-pdf">
-              <div class="upload-area" onclick="document.getElementById('input-pdf').click()">
-                <i class="ti ti-file-type-pdf"></i>
-                <p>Clique para subir um PDF da apostila ou material de estudo</p>
-                <p style="font-size:11px;margin-top:4px">Máximo recomendado: 5 páginas</p>
-              </div>
-              <input type="file" id="input-pdf" accept="application/pdf" style="display:none" onchange="previsualizarArquivo('pdf')">
-              <div id="preview-pdf" style="display:none" class="upload-preview"><i class="ti ti-check"></i><span id="nome-pdf"></span></div>
-            </div>
-
             <div style="margin-top:14px">
               <button class="btn btn-primary" onclick="iniciarTimer()" style="width:100%">Iniciar estudo</button>
             </div>
@@ -719,35 +690,14 @@
                 </div>
                 <div id="fin-assunto-label" style="font-size:13px;color:var(--text-secondary);margin-bottom:4px"></div>
               </div>
-
               <div class="card" style="margin-bottom:16px">
-                <div class="card-title">Conteúdo para a IA <span style="font-weight:400;color:var(--text-muted)">(opcional)</span></div>
-                <div style="font-size:12px;color:var(--text-muted);margin-bottom:12px">Adicione ou edite o conteúdo que a IA usará para gerar questões</div>
-                <div class="conteudo-tabs">
-                  <div class="conteudo-tab active" id="fin-tab-resumo" onclick="switchFinalizarTab('resumo',this)"><i class="ti ti-pencil"></i> Resumo</div>
-                  <div class="conteudo-tab" id="fin-tab-imagem" onclick="switchFinalizarTab('imagem',this)"><i class="ti ti-photo"></i> Imagem</div>
-                  <div class="conteudo-tab" id="fin-tab-pdf" onclick="switchFinalizarTab('pdf',this)"><i class="ti ti-file-type-pdf"></i> PDF</div>
-                </div>
-                <div class="conteudo-panel active" id="fin-panel-resumo">
-                  <textarea id="resumo-finalizar" placeholder="Resumo do que você estudou..." style="width:100%;min-height:100px;padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface-0);color:var(--text-primary);font-size:13px;resize:vertical;font-family:var(--font-sans)"></textarea>
-                </div>
-                <div class="conteudo-panel" id="fin-panel-imagem">
-                  <div class="upload-area" onclick="document.getElementById('img-finalizar').click()">
-                    <i class="ti ti-photo-up"></i><p>Foto do caderno ou apostila</p>
-                  </div>
-                  <input type="file" id="img-finalizar" accept="image/*" style="display:none" onchange="prevArquivoFinalizar('imagem')">
-                  <div id="prev-img-fin" style="display:none" class="upload-preview"><i class="ti ti-check"></i><span id="nome-img-fin"></span></div>
-                </div>
-                <div class="conteudo-panel" id="fin-panel-pdf">
-                  <div class="upload-area" onclick="document.getElementById('pdf-finalizar').click()">
-                    <i class="ti ti-file-type-pdf"></i><p>PDF do material estudado</p>
-                  </div>
-                  <input type="file" id="pdf-finalizar" accept="application/pdf" style="display:none" onchange="prevArquivoFinalizar('pdf')">
-                  <div id="prev-pdf-fin" style="display:none" class="upload-preview"><i class="ti ti-check"></i><span id="nome-pdf-fin"></span></div>
-                </div>
+                <div class="card-title">Anotações da sessão <span style="font-weight:400;color:var(--text-muted)">(opcional)</span></div>
+                <div style="font-size:12px;color:var(--text-muted);margin-bottom:12px">Você pode guardar um resumo curto do que estudou. Isso não é usado para gerar questões.</div>
+                <textarea id="resumo-finalizar" placeholder="Ex.: pontos importantes, dúvidas ou o que revisar depois..." style="width:100%;min-height:100px;padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface-0);color:var(--text-primary);font-size:13px;resize:vertical;font-family:var(--font-sans)"></textarea>
               </div>
 
               <div class="btn-row" style="justify-content:flex-start;gap:10px">
+                <button class="btn" onclick="descartarSessaoAtual()"><i class="ti ti-trash"></i> Descartar sessão</button>
                 <button class="btn" onclick="voltarAoTimer()"><i class="ti ti-arrow-left"></i> Voltar</button>
                 <button class="btn btn-primary" onclick="confirmarFinalizar()">Salvar e finalizar ✓</button>
               </div>
@@ -988,6 +938,11 @@
 
       <!-- CONFIG -->
       <div class="page" id="page-config">
+        <div class="card" style="max-width:480px;margin-bottom:14px">
+          <div class="card-title">Concurso atual</div>
+          <div id="cfg-concurso-atual" style="font-size:14px;color:var(--text-secondary);margin:8px 0 12px">—</div>
+          <button class="btn btn-sm" onclick="abrirOnboarding(true)"><i class="ti ti-switch-horizontal"></i> Trocar concurso ou rotina</button>
+        </div>
         <div class="card" style="max-width:480px">
           <div class="card-title">Configurações</div>
           <div class="settings-row">
@@ -1036,9 +991,11 @@
   let sessaoAtual  = null;
   let perfilAtual = null;
   let disponibilidadeAtual = [];
-  let concursoBNBId = null;
+  let concursosDisponiveis = [];
+  let concursoAtualId = null;
+  let concursoAtual = null;
   let agendaSemanaAtual = [];
-  let trilhaBNBAtual = [];
+  let trilhaAtual = [];
   let disciplinasRemotas = [];
   let semanaAgendaKey = '';
   let onboardingEdicao = false;
@@ -1113,21 +1070,41 @@
     } catch(e) { limparSessaoAuth(); return false; }
   }
 
-  async function carregarBaseBNB() {
-    if (concursoBNBId) return concursoBNBId;
-    const rows = await supa('/rest/v1/concursos?select=id,nome&slug=eq.bnb&limit=1');
-    concursoBNBId = rows?.[0]?.id || null;
-    return concursoBNBId;
+  async function carregarConcursosDisponiveis() {
+    concursosDisponiveis = await supa('/rest/v1/concursos?select=id,slug,nome,nome_curto,status_conteudo,edital_ano,ordem&ativo=eq.true&order=ordem.asc');
+    return concursosDisponiveis;
+  }
+
+  function concursoPorId(id) {
+    return concursosDisponiveis.find(c => Number(c.id) === Number(id)) || null;
+  }
+
+  async function carregarConcursoAtual() {
+    if (!concursosDisponiveis.length) await carregarConcursosDisponiveis();
+    if (concursoAtualId) {
+      concursoAtual = concursoPorId(concursoAtualId);
+      if (concursoAtual) return concursoAtualId;
+    }
+    const bnb = concursosDisponiveis.find(c=>c.slug==='bnb') || concursosDisponiveis[0];
+    concursoAtualId = bnb?.id || null;
+    concursoAtual = bnb || null;
+    return concursoAtualId;
+  }
+
+  function nomeConcursoAtual() {
+    return concursoAtual?.nome_curto || concursoAtual?.nome || 'Meu concurso';
   }
 
   async function carregarBaseEstudoRemota() {
-    await carregarBaseBNB();
+    await carregarConcursoAtual();
+    concursoAtual = concursoPorId(concursoAtualId);
+    if (!concursoAtualId) { disciplinasRemotas=[]; trilhaAtual=[]; return; }
     const [disciplinas, trilha] = await Promise.all([
       supa('/rest/v1/disciplinas?select=id,slug,nome&ativo=eq.true&order=ordem.asc'),
-      supa(`/rest/v1/trilha_concurso?select=id,ordem,prioridade,carga_estimada_minutos,assunto_id,assuntos(id,nome,slug,disciplina_id,disciplinas(id,nome,slug))&concurso_id=eq.${concursoBNBId}&ativo=eq.true&order=ordem.asc`)
+      supa(`/rest/v1/trilha_concurso?select=id,ordem,prioridade,carga_estimada_minutos,assunto_id,assuntos(id,nome,slug,disciplina_id,disciplinas(id,nome,slug))&concurso_id=eq.${concursoAtualId}&ativo=eq.true&order=ordem.asc`)
     ]);
     disciplinasRemotas = disciplinas || [];
-    trilhaBNBAtual = (trilha || []).map(t => ({
+    trilhaAtual = (trilha || []).map(t => ({
       ...t,
       assunto: t.assuntos?.nome || '',
       assuntoSlug: t.assuntos?.slug || '',
@@ -1160,7 +1137,7 @@
   async function carregarAgendaSemana(ref = new Date()) {
     const ini = inicioSemanaLocal(ref), fim = new Date(ini); fim.setDate(fim.getDate()+7);
     const key = dataLocalKey(ini);
-    const rows = await supa(`/rest/v1/agenda_estudo?select=id,data,tipo_atividade,duracao_planejada_minutos,questoes_planejadas,status,origem,assunto_livre,ordem_no_dia,gerado_automaticamente,disciplina_id,assunto_id,disciplinas(id,nome),assuntos(id,nome)&concurso_id=eq.${concursoBNBId}&data=gte.${dataLocalKey(ini)}&data=lt.${dataLocalKey(fim)}&order=data.asc,ordem_no_dia.asc`);
+    const rows = await supa(`/rest/v1/agenda_estudo?select=id,data,tipo_atividade,duracao_planejada_minutos,questoes_planejadas,status,origem,assunto_livre,ordem_no_dia,gerado_automaticamente,disciplina_id,assunto_id,disciplinas(id,nome),assuntos(id,nome)&concurso_id=eq.${concursoAtualId}&data=gte.${dataLocalKey(ini)}&data=lt.${dataLocalKey(fim)}&order=data.asc,ordem_no_dia.asc`);
     agendaSemanaAtual = rows || [];
     semanaAgendaKey = key;
     return agendaSemanaAtual;
@@ -1171,27 +1148,27 @@
     await carregarAgendaSemana(ref);
     if (agendaSemanaAtual.length) return agendaSemanaAtual;
     const uid = currentUser?.user?.id;
-    if (!uid || !concursoBNBId || !trilhaBNBAtual.length) return [];
+    if (!uid || !concursoAtualId || !trilhaAtual.length) return [];
 
-    const historico = await supa(`/rest/v1/agenda_estudo?select=assunto_id,duracao_planejada_minutos&concurso_id=eq.${concursoBNBId}&gerado_automaticamente=eq.true&order=data.asc`);
+    const historico = await supa(`/rest/v1/agenda_estudo?select=assunto_id,duracao_planejada_minutos&concurso_id=eq.${concursoAtualId}&gerado_automaticamente=eq.true&order=data.asc`);
     const planejado = {};
     (historico||[]).forEach(r => { if (r.assunto_id) planejado[r.assunto_id]=(planejado[r.assunto_id]||0)+(Number(r.duracao_planejada_minutos)||0); });
-    let idx = trilhaBNBAtual.findIndex(t => (planejado[t.assunto_id]||0) < (Number(t.carga_estimada_minutos)||60));
+    let idx = trilhaAtual.findIndex(t => (planejado[t.assunto_id]||0) < (Number(t.carga_estimada_minutos)||60));
     if (idx < 0) idx = 0;
     const ini = inicioSemanaLocal(ref), rows=[];
     for (let off=0; off<7; off++) {
       const data = new Date(ini); data.setDate(ini.getDate()+off);
       const disp = disponibilidadeParaData(data);
       if (!disp?.disponivel || Number(disp.minutos_disponiveis)<=0) continue;
-      let bloco = trilhaBNBAtual[idx];
-      if (!bloco) { idx=0; bloco=trilhaBNBAtual[0]; }
+      let bloco = trilhaAtual[idx];
+      if (!bloco) { idx=0; bloco=trilhaAtual[0]; }
       const carga = Number(bloco.carga_estimada_minutos)||60;
       const ja = planejado[bloco.assunto_id]||0;
       let restante = Math.max(30, carga-ja);
       const disponivel = Math.max(30, Number(disp.minutos_disponiveis)||60);
       const duracao = Math.min(disponivel, restante);
       rows.push({
-        user_id:uid, concurso_id:concursoBNBId, disciplina_id:bloco.disciplinaId,
+        user_id:uid, concurso_id:concursoAtualId, disciplina_id:bloco.disciplinaId,
         assunto_id:bloco.assunto_id, data:dataLocalKey(data), tipo_atividade:'teoria_questoes',
         duracao_planejada_minutos:duracao, questoes_planejadas:duracao<=60?10:duracao<=90?15:20,
         status:'planejada', origem:'trilha', ordem_no_dia:1, gerado_automaticamente:true
@@ -1213,14 +1190,16 @@
   }
 
   async function carregarPerfilRemoto() {
-    await carregarBaseBNB();
     const uid = currentUser?.user?.id;
     if (!uid) return null;
+    if (!concursosDisponiveis.length) await carregarConcursosDisponiveis();
     const [perfis, disp] = await Promise.all([
       supa(`/rest/v1/perfis?select=*&user_id=eq.${uid}&limit=1`),
       supa(`/rest/v1/disponibilidade_usuario?select=*&user_id=eq.${uid}&order=dia_semana.asc`)
     ]);
     perfilAtual = perfis?.[0] || null;
+    concursoAtualId = perfilAtual?.concurso_alvo_id || concursoAtualId || concursosDisponiveis.find(c=>c.slug==='bnb')?.id || concursosDisponiveis[0]?.id || null;
+    concursoAtual = concursoPorId(concursoAtualId);
     disponibilidadeAtual = disp || [];
     aplicarDisponibilidadeAoMeta();
     return perfilAtual;
@@ -1261,6 +1240,28 @@
     });
   }
 
+  async function preencherConcursosOnboarding() {
+    if (!concursosDisponiveis.length) await carregarConcursosDisponiveis();
+    const sel = document.getElementById('onb-concurso');
+    if (!sel) return;
+    sel.innerHTML = concursosDisponiveis.map(c => {
+      const status = c.status_conteudo==='disponivel' ? 'Disponível' : c.status_conteudo==='parcial' ? 'Parcial' : 'Em preparação';
+      return `<option value="${c.id}">${escapeHtml(c.nome_curto || c.nome)}${c.edital_ano ? ' · '+c.edital_ano : ''} — ${status}</option>`;
+    }).join('');
+    sel.value = String(concursoAtualId || concursosDisponiveis.find(c=>c.slug==='bnb')?.id || '');
+    atualizarNotaConcurso();
+  }
+
+  function atualizarNotaConcurso() {
+    const sel=document.getElementById('onb-concurso');
+    const c=concursoPorId(sel?.value);
+    const note=document.getElementById('onb-concurso-note');
+    if(!note||!c) return;
+    note.innerHTML = c.status_conteudo==='disponivel'
+      ? `<strong>${escapeHtml(c.nome_curto||c.nome)}</strong>: trilha disponível.`
+      : `<strong>${escapeHtml(c.nome_curto||c.nome)}</strong>: estrutura já cadastrada; a trilha específica está em preparação. Seu histórico global será preservado e reaproveitado.`;
+  }
+
   function preencherOnboardingComDados() {
     montarRotinaUI();
     document.getElementById('onb-nivel').value = perfilAtual?.nivel_estudo || 'comecando';
@@ -1274,11 +1275,12 @@
     });
   }
 
-  function abrirOnboarding(edicao=false) {
+  async function abrirOnboarding(edicao=false) {
     onboardingEdicao = !!edicao;
+    await preencherConcursosOnboarding();
     preencherOnboardingComDados();
     document.getElementById('onboarding-title').textContent = edicao ? 'Minha rotina' : 'Monte sua rotina';
-    document.getElementById('onboarding-sub').textContent = edicao ? 'A mudança reorganiza o futuro da trilha, sem apagar seu histórico.' : 'O conteúdo do BNB é o mesmo para todos. Aqui você define apenas quanto tempo a sua trilha pode usar em cada dia.';
+    document.getElementById('onboarding-sub').textContent = edicao ? 'Você pode trocar o concurso atual sem apagar o histórico. O sistema reaproveita o que já foi estudado.' : 'Escolha seu foco atual e sua disponibilidade. Seu histórico será reaproveitado quando você trocar de concurso.';
     document.getElementById('onboarding-cancel').style.display = edicao ? 'inline-flex' : 'none';
     document.getElementById('main-app').style.display = 'none';
     document.getElementById('auth-screen').style.display = 'none';
@@ -1293,23 +1295,33 @@
   async function salvarOnboarding() {
     const msg=document.getElementById('onboarding-msg'); msg.textContent='';
     try {
-      const uid=currentUser.user.id; await carregarBaseBNB();
+      const uid=currentUser.user.id;
+      if (!concursosDisponiveis.length) await carregarConcursosDisponiveis();
+      const selecionado = Number(document.getElementById('onb-concurso').value);
+      const novoConcurso = concursoPorId(selecionado);
+      if (!novoConcurso) throw new Error('Selecione um concurso.');
+      const concursoAnteriorId = concursoAtualId;
+      concursoAtualId = selecionado; concursoAtual = novoConcurso;
       const nome=currentUser.user?.user_metadata?.nome || perfilAtual?.nome || currentUser.user.email?.split('@')[0] || '';
       const nivel=document.getElementById('onb-nivel').value;
-      const perfilPayload={user_id:uid,nome,concurso_alvo_id:concursoBNBId,nivel_estudo:nivel,perfil_rotina:'personalizado',onboarding_concluido:true};
+      const perfilPayload={user_id:uid,nome,concurso_alvo_id:concursoAtualId,nivel_estudo:nivel,perfil_rotina:'personalizado',onboarding_concluido:true};
       await supa('/rest/v1/perfis?on_conflict=user_id',{method:'POST',headers:{'Prefer':'resolution=merge-duplicates,return=representation'},body:JSON.stringify(perfilPayload)});
+      await supa('/rest/v1/usuario_concursos?status=eq.ativo',{method:'PATCH',body:JSON.stringify({status:'pausado',ultimo_acesso_em:new Date().toISOString()})}).catch(()=>null);
+      await supa('/rest/v1/usuario_concursos?on_conflict=user_id,concurso_id',{method:'POST',headers:{'Prefer':'resolution=merge-duplicates,return=representation'},body:JSON.stringify({user_id:uid,concurso_id:concursoAtualId,status:'ativo',ultimo_acesso_em:new Date().toISOString()})});
       const rows=[1,2,3,4,5,6,0].map(n=>({user_id:uid,dia_semana:n,disponivel:document.getElementById('onb-dia-'+n).checked,minutos_disponiveis:Number(document.getElementById('onb-min-'+n).value)||60}));
       await supa('/rest/v1/disponibilidade_usuario?on_conflict=user_id,dia_semana',{method:'POST',headers:{'Prefer':'resolution=merge-duplicates,return=representation'},body:JSON.stringify(rows)});
       await carregarPerfilRemoto();
-      await recalcularAgendaFutura();
+      trilhaAtual=[]; agendaSemanaAtual=[]; semanaAgendaKey='';
+      await carregarBaseEstudoRemota();
+      if (novoConcurso.status_conteudo==='disponivel') await recalcularAgendaFutura();
       document.getElementById('onboarding-screen').style.display='none';
       await entrarNoApp(currentUser.user.email);
-    } catch(e) { console.error(e); msg.textContent='Não foi possível salvar sua rotina: '+e.message; }
+    } catch(e) { console.error(e); msg.textContent='Não foi possível salvar: '+e.message; }
   }
 
   async function prepararEntradaApp() {
     await carregarPerfilRemoto();
-    if (!perfilAtual?.onboarding_concluido) { abrirOnboarding(false); return; }
+    if (!perfilAtual?.onboarding_concluido) { await abrirOnboarding(false); return; }
     await entrarNoApp(currentUser.user?.email || '');
   }
 
@@ -1359,11 +1371,14 @@
     document.getElementById('onboarding-screen').style.display='none';
     document.getElementById('main-app').style.display='flex';
     document.getElementById('sidebar-user').textContent = perfilAtual?.nome || email;
+    const sc=document.getElementById('sidebar-concurso'); if(sc) sc.textContent='Foco: '+nomeConcursoAtual();
     buildDisciplinas();
     carregarConfig();
     aplicarDisponibilidadeAoMeta();
     renderConfig();
-    await gerarAgendaSemanaSeNecessario(new Date());
+    await carregarBaseEstudoRemota();
+    if (concursoAtual?.status_conteudo==='disponivel') await gerarAgendaSemanaSeNecessario(new Date());
+    else { agendaSemanaAtual=[]; semanaAgendaKey=''; }
     renderDashboard();
   }
 
@@ -1414,7 +1429,7 @@
         const rows=await supa(`/rest/v1/assuntos?select=id,nome,conteudo_dinamico&disciplina_id=eq.${plano.disciplinaId}&id=eq.${plano.assuntoId}&limit=1`);
         assuntoInfo=rows?.[0]||null;
       }
-      const trilha=trilhaBNBAtual.find(t=>Number(t.assunto_id)===Number(plano.assuntoId));
+      const trilha=trilhaAtual.find(t=>Number(t.assunto_id)===Number(plano.assuntoId));
       if(trilha){ const b=document.createElement('span'); b.className='study-badge hot'; b.textContent=`P${trilha.prioridade} · prioridade ${trilha.prioridade===1?'alta':'relevante'}`; badges.appendChild(b); }
       if(assuntoInfo?.conteudo_dinamico){ const b=document.createElement('span'); b.className='study-badge dynamic'; b.textContent='Conteúdo dinâmico'; badges.appendChild(b); }
 
@@ -1425,12 +1440,17 @@
           supa(`/rest/v1/conteudos_estudo?select=titulo,conteudo,fonte_nome,fonte_url,revisado_em&assunto_id=eq.${plano.assuntoId}&tipo=eq.resumo_base&ativo=eq.true&order=ordem.asc&limit=1`).catch(()=>[]),
           supa(`/rest/v1/conteudos_estudo?select=titulo,conteudo,fonte_nome,fonte_url,revisado_em&assunto_id=eq.${plano.assuntoId}&tipo=eq.atualizacao&ativo=eq.true&order=revisado_em.desc&limit=1`).catch(()=>[]),
           supa(`/rest/v1/aulas?select=titulo,professor_canal,url,duracao_minutos,tipo,verificado_em&assunto_id=eq.${plano.assuntoId}&tipo=eq.principal&ativo=eq.true&order=ordem.asc&limit=1`).catch(()=>[]),
-          supa(`/rest/v1/progresso_assuntos?select=status,nivel_dominio,tempo_estudado_minutos,questoes_respondidas,questoes_corretas&concurso_id=eq.${concursoBNBId}&assunto_id=eq.${plano.assuntoId}&limit=1`).catch(()=>[])
+          Promise.all([
+            supa(`/rest/v1/dominio_assuntos?select=status,nivel_dominio,tempo_estudado_minutos,questoes_respondidas,questoes_corretas&assunto_id=eq.${plano.assuntoId}&limit=1`).catch(()=>[]),
+            supa(`/rest/v1/progresso_assuntos?select=status,nivel_prontidao,questoes_alvo_respondidas,questoes_alvo_corretas&concurso_id=eq.${concursoAtualId}&assunto_id=eq.${plano.assuntoId}&limit=1`).catch(()=>[])
+          ]).then(([g,p])=>[{global:g?.[0]||null,prova:p?.[0]||null}])
         ]);
       }
       document.getElementById('study-focus-qtd').textContent=String(qtd);
-      const p=progresso?.[0];
-      document.getElementById('study-focus-progress').textContent=p ? `Domínio ${Math.round(Number(p.nivel_dominio)||0)}% · ${Number(p.questoes_respondidas)||0} respondidas` : 'Ainda sem histórico';
+      const pg=progresso?.[0]?.global, pp=progresso?.[0]?.prova;
+      document.getElementById('study-focus-progress').textContent = (pg||pp)
+        ? `Domínio global ${Math.round(Number(pg?.nivel_dominio)||0)}% · Prontidão ${nomeConcursoAtual()} ${Math.round(Number(pp?.nivel_prontidao)||0)}%`
+        : 'Ainda sem histórico';
       document.getElementById('study-focus-summary').innerHTML=resumo?.[0] ? `<strong>${esc(resumo[0].titulo)}</strong><div style="margin-top:6px">${esc(resumo[0].conteudo).replace(/\n/g,'<br>')}</div>` : '<span class="study-empty">Resumo em preparação. Você já pode estudar pela aula/material próprio e praticar as questões mapeadas.</span>';
       const aula=aulas?.[0];
       document.getElementById('study-focus-class').innerHTML=aula ? `<strong>${esc(aula.titulo)}</strong><div style="margin-top:4px">${esc(aula.professor_canal||'')}</div><div style="margin-top:8px"><a class="btn btn-sm" href="${esc(aula.url)}" target="_blank" rel="noopener">Abrir aula${aula.duracao_minutos?` · ${aula.duracao_minutos} min`:''}</a></div>` : '<span class="study-empty">Aula principal ainda não cadastrada. A curadoria será adicionada sem alterar seu progresso.</span>';
@@ -1513,7 +1533,7 @@
     });
     localStorage.setItem(respostaStorageKey(), JSON.stringify(rows.slice(-5000)));
     if (currentUser?.user?.id && item.dbId) {
-      carregarBaseBNB().then(()=>supa('/rest/v1/respostas_questoes',{method:'POST',body:JSON.stringify({user_id:currentUser.user.id,questao_id:item.dbId,concurso_id:concursoBNBId,resposta_marcada:String(escolha),correta:!!acertou,modo:contexto==='revisao'?'revisao':'pratica'})})).catch(e=>console.warn('Resposta remota não salva:',e));
+      carregarConcursoAtual().then(()=>supa('/rest/v1/respostas_questoes',{method:'POST',body:JSON.stringify({user_id:currentUser.user.id,questao_id:item.dbId,concurso_id:concursoAtualId,resposta_marcada:String(escolha),correta:!!acertou,modo:contexto==='revisao'?'revisao':'pratica'})})).catch(e=>console.warn('Resposta remota não salva:',e));
     }
   }
 
@@ -1561,7 +1581,50 @@
     return Object.values(mapa);
   }
 
-  async function salvarResultadosPorAssunto(respostas) { return; }
+  function statusPorDesempenho(total,pct) {
+    if (!total) return 'nao_iniciado';
+    if (total < 5) return 'praticando';
+    if (total >= 20 && pct >= 85) return 'dominado';
+    if (total >= 10 && pct >= 75) return 'em_consolidacao';
+    return 'praticando';
+  }
+
+  async function salvarResultadosPorAssunto(respostas) {
+    const uid=currentUser?.user?.id;
+    const ids=[...new Set((respostas||[]).map(r=>Number(r.dbId)).filter(Boolean))];
+    if(!uid || !concursoAtualId || !ids.length) return;
+    const maps=await supa(`/rest/v1/questoes_assuntos?select=questao_id,assunto_id&principal=eq.true&questao_id=in.(${ids.join(',')})`);
+    if(!maps?.length) return;
+    const porQuestao={}; (maps||[]).forEach(m=>{porQuestao[Number(m.questao_id)]=Number(m.assunto_id);});
+    const agg={};
+    (respostas||[]).forEach(r=>{
+      const aid=porQuestao[Number(r.dbId)]; if(!aid) return;
+      if(!agg[aid]) agg[aid]={total:0,acertos:0};
+      agg[aid].total++; if(r.acertou) agg[aid].acertos++;
+    });
+    const assuntoIds=Object.keys(agg).map(Number); if(!assuntoIds.length) return;
+    const [globais,provas]=await Promise.all([
+      supa(`/rest/v1/dominio_assuntos?select=*&assunto_id=in.(${assuntoIds.join(',')})`),
+      supa(`/rest/v1/progresso_assuntos?select=*&concurso_id=eq.${concursoAtualId}&assunto_id=in.(${assuntoIds.join(',')})`)
+    ]);
+    const gmap=Object.fromEntries((globais||[]).map(r=>[Number(r.assunto_id),r]));
+    const pmap=Object.fromEntries((provas||[]).map(r=>[Number(r.assunto_id),r]));
+    const agora=new Date().toISOString();
+    const grow=[], prow=[];
+    assuntoIds.forEach(aid=>{
+      const a=agg[aid], g=gmap[aid]||{}, pp=pmap[aid]||{};
+      const gt=(Number(g.questoes_respondidas)||0)+a.total, ga=(Number(g.questoes_corretas)||0)+a.acertos;
+      const gp=gt?Math.round(ga/gt*100):0;
+      grow.push({user_id:uid,assunto_id:aid,status:statusPorDesempenho(gt,gp),nivel_dominio:gp,tempo_estudado_minutos:Number(g.tempo_estudado_minutos)||0,questoes_respondidas:gt,questoes_corretas:ga,ultima_atividade_em:agora});
+      const pt=(Number(pp.questoes_alvo_respondidas)||0)+a.total, pa=(Number(pp.questoes_alvo_corretas)||0)+a.acertos;
+      const pr=pt?Math.round(pa/pt*100):0;
+      prow.push({user_id:uid,concurso_id:concursoAtualId,assunto_id:aid,status:statusPorDesempenho(pt,pr),nivel_dominio:gp,nivel_prontidao:pr,tempo_estudado_minutos:Number(pp.tempo_estudado_minutos)||0,questoes_respondidas:Number(pp.questoes_respondidas||0)+a.total,questoes_corretas:Number(pp.questoes_corretas||0)+a.acertos,questoes_alvo_respondidas:pt,questoes_alvo_corretas:pa,ultima_atividade_em:agora});
+    });
+    await Promise.all([
+      supa('/rest/v1/dominio_assuntos?on_conflict=user_id,assunto_id',{method:'POST',headers:{'Prefer':'resolution=merge-duplicates,return=representation'},body:JSON.stringify(grow)}),
+      supa('/rest/v1/progresso_assuntos?on_conflict=user_id,concurso_id,assunto_id',{method:'POST',headers:{'Prefer':'resolution=merge-duplicates,return=representation'},body:JSON.stringify(prow)})
+    ]);
+  }
 
   async function carregarPerformanceAssuntos(disciplina) {
     const mapa = {};
@@ -1909,7 +1972,7 @@
     if (!timerMat) { errEl.style.display='block'; errEl.textContent='Selecione uma disciplina.'; return; }
     errEl.style.display = 'none';
     timerAssunto   = assunto;
-    conteudoExtra  = await coletarConteudoExtra();
+    conteudoExtra = null;
     document.getElementById('timer-step1').style.display = 'none';
     document.getElementById('timer-step2').style.display = 'block';
     document.getElementById('timer-mat-nome').textContent    = timerMat;
@@ -1935,8 +1998,8 @@
 
   async function confirmarFinalizar() {
     const streak = await calcularStreak();
-    const conteudoFinal = await coletarConteudoFinal();
-    try { await carregarBaseBNB(); await supa('/rest/v1/sessoes_estudo', { method:'POST', body: JSON.stringify({ user_id: currentUser.user.id, concurso_id: concursoBNBId, tipo_atividade:'teoria', status:'concluida', finalizado_em:new Date().toISOString(), duracao_real_minutos:Math.max(1,Math.round(timerSec/60)), estado:{disciplina:timerMat,assunto:timerAssunto||null,streak} }) }); }
+    const conteudoFinal = null;
+    try { await carregarConcursoAtual(); await supa('/rest/v1/sessoes_estudo', { method:'POST', body: JSON.stringify({ user_id: currentUser.user.id, concurso_id: concursoAtualId, tipo_atividade:'teoria', status:'concluida', finalizado_em:new Date().toISOString(), duracao_real_minutos:Math.max(1,Math.round(timerSec/60)), estado:{disciplina:timerMat,assunto:timerAssunto||null,anotacoes:(document.getElementById('resumo-finalizar')?.value||''),streak} }) }); }
     catch(e) { console.error('Erro ao salvar sessão:', e); }
     sessaoAtual = { materia: timerMat, assunto: timerAssunto, conteudoExtra: conteudoFinal };
     if (timerAgendaId) { try { await supa(`/rest/v1/agenda_estudo?id=eq.${timerAgendaId}`,{method:'PATCH',body:JSON.stringify({status:'concluida'})}); await carregarAgendaSemana(new Date()); } catch(e){ console.warn('Agenda não atualizada:',e); } }
@@ -1946,13 +2009,30 @@
     // Reset completo
     timerMat = ''; timerAssunto = ''; conteudoExtra = { tipo: null };
     document.querySelectorAll('#disciplinas-timer .mat-btn').forEach(b=>b.classList.remove('active'));
-    ['input-assunto','input-resumo','resumo-durante','resumo-finalizar'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
-    ['input-imagem','input-pdf','img-durante','pdf-durante','img-finalizar','pdf-finalizar'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
-    ['prev-img-dur','prev-pdf-dur','prev-img-fin','prev-pdf-fin','preview-imagem','preview-pdf'].forEach(id=>{ const el=document.getElementById(id); if(el) el.style.display='none'; });
+    ['input-assunto','resumo-durante','resumo-finalizar'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+    ['img-durante','pdf-durante'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+    ['prev-img-dur','prev-pdf-dur'].forEach(id=>{ const el=document.getElementById(id); if(el) el.style.display='none'; });
     document.getElementById('timer-step3').style.display = 'none';
     document.getElementById('timer-step1').style.display = 'block';
-    const tipoLabel = conteudoFinal?.tipo === 'texto' ? '📝 Resumo' : conteudoFinal?.tipo === 'imagem' ? '📷 Imagem' : conteudoFinal?.tipo === 'pdf' ? '📄 PDF' : 'Nenhum';
-    alert(`Estudo registrado!\n\nDisciplina: ${sessaoAtual.materia}\nAssunto: ${sessaoAtual.assunto||'—'}\nTempo: ${h}h ${String(m).padStart(2,'0')}min\nConteúdo para IA: ${tipoLabel}\n\nVá para "Questões" para praticar!`);
+    alert(`Estudo registrado!
+
+Disciplina: ${sessaoAtual.materia}
+Assunto: ${sessaoAtual.assunto||'—'}
+Tempo: ${h}h ${String(m).padStart(2,'0')}min
+
+Vá para "Questões" para praticar!`);
+  }
+
+  function descartarSessaoAtual() {
+    if (!confirm('Descartar esta sessão sem salvar?')) return;
+    clearInterval(timerInterval);
+    timerSec=0; timerPaused=false; timerMat=''; timerAssunto=''; timerMetaOverride=null; timerPlanoDataKey=null; timerAgendaId=null; conteudoExtra=null;
+    ['input-assunto','resumo-durante','resumo-finalizar'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+    document.querySelectorAll('#disciplinas-timer .mat-btn').forEach(b=>b.classList.remove('active'));
+    document.getElementById('timer-step3').style.display='none';
+    document.getElementById('timer-step2').style.display='none';
+    document.getElementById('timer-step1').style.display='block';
+    document.getElementById('timer-display').textContent='00:00:00';
   }
 
   async function calcularStreak() {
@@ -2158,7 +2238,7 @@
     if (qRespondida) return; qRespondida = true;
     const q = normalizarQuestao(questoesList[qAtual]); const acertou = letra === q.gabarito;
     if (acertou) qAcertos++; else qErros++;
-    const registro = {disciplina:q.disciplina || qMat, assunto:q.assunto, acertou, gabarito:q.gabarito, escolha:letra};
+    const registro = {dbId:q.dbId, disciplina:q.disciplina || qMat, assunto:q.assunto, acertou, gabarito:q.gabarito, escolha:letra};
     qSessaoRespostas.push(registro);
     registrarRespostaLocal(q, letra, acertou, 'questoes');
     document.querySelectorAll('#q-opcoes .opcao').forEach(el=>el.style.pointerEvents='none');
@@ -2359,7 +2439,7 @@
     if (revRespondida) return; revRespondida=true;
     const q=normalizarQuestao(revList[revAtual]); const acertou=letra===q.gabarito;
     if(acertou)revAcertos++;else revErros++;
-    revSessaoRespostas.push({disciplina:q.disciplina, assunto:q.assunto, acertou, gabarito:q.gabarito, escolha:letra});
+    revSessaoRespostas.push({dbId:q.dbId, disciplina:q.disciplina, assunto:q.assunto, acertou, gabarito:q.gabarito, escolha:letra});
     registrarRespostaLocal(q, letra, acertou, 'revisao');
     document.querySelectorAll('#rev-opcoes .opcao').forEach(el=>el.style.pointerEvents='none');
     const escolhida=document.getElementById('ropt-'+letra); if(escolhida) escolhida.classList.add(acertou?'correta':'errada');
@@ -2530,6 +2610,7 @@
 
   function renderConfig() {
     document.getElementById('cfg-meta').value = userMeta.metaSec;
+    const ca=document.getElementById('cfg-concurso-atual'); if(ca) ca.innerHTML=`<strong>${escapeHtml(nomeConcursoAtual())}</strong>${concursoAtual?.status_conteudo==='disponivel'?' · trilha disponível':' · trilha em preparação'}`;
     const r=document.getElementById('cfg-rotina-resumo');
     if(r){ const ativos=disponibilidadeAtual.filter(d=>d.disponivel&&Number(d.minutos_disponiveis)>0); const total=ativos.reduce((a,d)=>a+Number(d.minutos_disponiveis||0),0); r.textContent=ativos.length?`${ativos.length} dias · ${Math.floor(total/60)}h${total%60?String(total%60).padStart(2,'0')+'min':''} por semana`:'Nenhum dia disponível configurado'; }
   }
@@ -2549,7 +2630,7 @@
         const assunto=(document.getElementById('cfg-assunto-'+dia)?.value.trim() || '');
         const atividade=document.getElementById('cfg-atividade-'+dia)?.value || 'teoria_questoes';
         rows.push({
-          user_id:uid, concurso_id:concursoBNBId, disciplina_id:disciplinaId, assunto_id:null, assunto_livre:assunto,
+          user_id:uid, concurso_id:concursoAtualId, disciplina_id:disciplinaId, assunto_id:null, assunto_livre:assunto,
           data:dataLocalKey(data), tipo_atividade:atividade, duracao_planejada_minutos:Number(document.getElementById('cfg-duracao-'+dia)?.value)||60,
           questoes_planejadas:atividade==='teoria'?0:(Number(document.getElementById('cfg-questoes-'+dia)?.value)||20),
           status:'planejada', origem:'manual', ordem_no_dia:1, gerado_automaticamente:false
