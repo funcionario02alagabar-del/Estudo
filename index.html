@@ -1,12 +1,15 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <title>MD Trilha v1.8 — Plataforma de Estudos</title>
+  <title>MD Trilha v1.9 — Plataforma de Estudos</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/tabler-icons.min.css">
   <style>
     :root {
@@ -548,7 +551,7 @@
 <div id="main-app" class="main-app" style="display:none">
   <div class="sidebar">
     <div class="sidebar-logo"><span class="brand-mark">M</span><span><strong>MD</strong> Trilha</span></div>
-    <div class="sidebar-user" id="sidebar-user"></div><div id="sidebar-concurso" style="font-size:11px;color:rgba(255,255,255,.65);padding:0 18px 4px"></div><div style="font-size:10px;color:rgba(255,255,255,.42);padding:0 18px 12px">Versão v1.8</div>
+    <div class="sidebar-user" id="sidebar-user"></div><div id="sidebar-concurso" style="font-size:11px;color:rgba(255,255,255,.65);padding:0 18px 4px"></div><div style="font-size:10px;color:rgba(255,255,255,.42);padding:0 18px 12px">Versão v1.9</div>
     <div class="nav-group-label">Sua trilha</div>
     <div class="nav-item mobile-primary active" onclick="goTo('dashboard',this)"><i class="ti ti-home"></i> Início</div>
     <div class="nav-item mobile-primary" onclick="goTo('cronograma',this)"><i class="ti ti-calendar-event"></i> Plano semanal</div>
@@ -605,7 +608,7 @@
         <div id="study-focus" class="study-focus-card" style="display:none">
           <div class="study-focus-head">
             <div><div class="study-focus-kicker" id="study-focus-kicker">Sua atividade</div><div class="study-focus-title" id="study-focus-title">Carregando...</div><div class="study-focus-sub" id="study-focus-sub"></div><div class="study-badges" id="study-focus-badges"></div></div>
-            <button class="btn btn-sm" onclick="document.getElementById('study-topic-switch').style.display='flex'">Escolher outro assunto</button>
+            <button class="btn btn-sm" onclick="document.getElementById('study-topic-switch').style.display='flex'">Escolher outro assunto</button><button class="btn btn-sm" onclick="abrirSFNPiloto()">Abrir SFN piloto</button>
           </div>
           <div class="study-meta-row"><span><strong id="study-focus-time">—</strong> planejados</span><span><strong id="study-focus-qtd">—</strong> questões mapeadas</span><span id="study-focus-progress">Ainda sem histórico</span></div>
           <div class="study-panel" style="margin-bottom:12px"><div class="study-panel-title"><i class="ti ti-target-arrow"></i> Por que estudar isto agora?</div><div class="study-panel-body" id="study-focus-why"><span class="study-empty">A trilha está calculando a prioridade deste bloco.</span></div></div>
@@ -1253,7 +1256,7 @@
     if (!sel) return;
     sel.innerHTML = concursosDisponiveis.map(c => {
       const status = c.status_conteudo==='disponivel' ? 'Disponível' : c.status_conteudo==='parcial' ? 'Parcial' : 'Em preparação';
-      return `<option value="${c.id}">${escapeHtml(c.nome_curto || c.nome)}${c.edital_ano ? ' · '+c.edital_ano : ''} — ${status}</option>`;
+      return `<option value="${c.id}">${escapeHtml(c.nome_curto || c.nome)} — ${status}</option>`;
     }).join('');
     sel.value = String(concursoAtualId || concursosDisponiveis.find(c=>c.slug==='bnb')?.id || '');
     atualizarNotaConcurso();
@@ -1446,6 +1449,32 @@
     await renderEstudarAgora();
   }
 
+  async function abrirSFNPiloto(){
+    try{
+      await carregarBaseEstudoRemota();
+      const t=(trilhaAtual||[]).find(x=>String(x.slug||'')==='sfn-estrutura-cmn-bacen' || /SFN: estrutura/i.test(String(x.assunto||'')));
+      if(!t) throw new Error('SFN não encontrado na trilha atual.');
+      const disp=disponibilidadeParaData(new Date());
+      const minutos=Math.max(30,Math.min(Number(disp?.minutos_disponiveis)||60,Number(t.carga_estimada_minutos)||60));
+      studyFocusOverride={disciplina:t.disciplina,disciplinaId:t.disciplinaId,assunto:t.assunto,assuntoId:t.assunto_id,atividade:'teoria_questoes',duracao:minutos,questoes:10,agendaId:null,status:'escolhido',geradoAutomaticamente:false};
+      studyFocusData=dataLocalKey(new Date());
+      await renderEstudarAgora();
+    }catch(e){
+      mostrarErroEstudarAgora(e);
+    }
+  }
+
+  function mostrarErroEstudarAgora(e){
+    const focus=document.getElementById('study-focus');
+    const manual=document.getElementById('timer-manual-card');
+    if(focus) focus.style.display='block';
+    if(manual) manual.style.display='none';
+    const title=document.getElementById('study-focus-title'); if(title) title.textContent='Não foi possível carregar o conteúdo';
+    const sub=document.getElementById('study-focus-sub'); if(sub) sub.textContent='Diagnóstico v1.9';
+    const why=document.getElementById('study-focus-why'); if(why) why.innerHTML=`<strong>Erro ao consultar o Supabase:</strong><div style="margin-top:8px;font-family:monospace;font-size:12px;word-break:break-word">${esc(e?.message||String(e))}</div><div style="margin-top:8px;color:var(--text-muted);font-size:12px">Se esta caixa aparecer, me envie uma captura. Assim identificamos a consulta exata que falhou.</div>`;
+    const summary=document.getElementById('study-focus-summary'); if(summary) summary.innerHTML='<span class="study-empty">O HTML v1.9 carregou corretamente, mas houve falha ao buscar o conteúdo remoto.</span>';
+  }
+
   async function buscarFocoAutomatico(){
     const hoje=new Date(), hojeKey=dataLocalKey(hoje);
     await gerarAgendaSemanaSeNecessario(hoje);
@@ -1511,10 +1540,10 @@
       if(plano.assuntoId){
         [qtd,resumo,atualiz,atencao,fontes,aulas,progresso]=await Promise.all([
           supa(`/rest/v1/questoes_assuntos?select=questao_id&assunto_id=eq.${plano.assuntoId}`,{headers:{'Range':'0-999'}}).then(r=>(r||[]).length).catch(()=>0),
-          supa(`/rest/v1/conteudos_estudo?select=titulo,conteudo,fonte_nome,fonte_url,revisado_em&assunto_id=eq.${plano.assuntoId}&tipo=eq.resumo_base&ativo=eq.true&status_vigencia=eq.atual&order=ordem.asc&limit=1`).catch(()=>[]),
-          supa(`/rest/v1/conteudos_estudo?select=titulo,conteudo,fonte_nome,fonte_url,revisado_em&assunto_id=eq.${plano.assuntoId}&tipo=eq.atualizacao&ativo=eq.true&status_vigencia=eq.atual&order=revisado_em.desc&limit=1`).catch(()=>[]),
-          supa(`/rest/v1/conteudos_estudo?select=titulo,conteudo,fonte_nome,fonte_url,revisado_em&assunto_id=eq.${plano.assuntoId}&tipo=eq.atencao_prova&ativo=eq.true&status_vigencia=eq.atual&order=ordem.asc&limit=1`).catch(()=>[]),
-          supa(`/rest/v1/conteudos_estudo?select=titulo,conteudo,fonte_nome,fonte_url,revisado_em&assunto_id=eq.${plano.assuntoId}&tipo=eq.fonte_oficial&ativo=eq.true&status_vigencia=eq.atual&order=ordem.asc`).catch(()=>[]),
+          supa(`/rest/v1/conteudos_estudo?select=titulo,conteudo,fonte_nome,fonte_url,revisado_em&assunto_id=eq.${plano.assuntoId}&tipo=eq.resumo_base&ativo=eq.true&order=ordem.asc&limit=1`).catch(()=>[]),
+          supa(`/rest/v1/conteudos_estudo?select=titulo,conteudo,fonte_nome,fonte_url,revisado_em&assunto_id=eq.${plano.assuntoId}&tipo=eq.atualizacao&ativo=eq.true&order=revisado_em.desc&limit=1`).catch(()=>[]),
+          supa(`/rest/v1/conteudos_estudo?select=titulo,conteudo,fonte_nome,fonte_url,revisado_em&assunto_id=eq.${plano.assuntoId}&tipo=eq.atencao_prova&ativo=eq.true&order=ordem.asc&limit=1`).catch(()=>[]),
+          supa(`/rest/v1/conteudos_estudo?select=titulo,conteudo,fonte_nome,fonte_url,revisado_em&assunto_id=eq.${plano.assuntoId}&tipo=eq.fonte_oficial&ativo=eq.true&order=ordem.asc`).catch(()=>[]),
           supa(`/rest/v1/aulas?select=titulo,professor_canal,url,duracao_minutos,tipo,verificado_em,nota_curadoria&assunto_id=eq.${plano.assuntoId}&tipo=in.(principal,complementar)&ativo=eq.true&order=ordem.asc`).catch(()=>[]),
           Promise.all([
             supa(`/rest/v1/dominio_assuntos?select=status,nivel_dominio,tempo_estudado_minutos,questoes_respondidas,questoes_corretas&assunto_id=eq.${plano.assuntoId}&limit=1`).catch(()=>[]),
@@ -1542,7 +1571,7 @@
       document.getElementById('study-focus-practice').disabled=qtd===0;
       montarSeletorAssuntosTrilha(plano.assuntoId);
       focus.style.display='block'; manual.style.display='none';
-    }catch(e){ console.warn('Estudar agora:',e); focus.style.display='none'; manual.style.display='block'; }
+    }catch(e){ console.warn('Estudar agora:',e); mostrarErroEstudarAgora(e); }
   }
 
   function iniciarFocoEstudo(){
