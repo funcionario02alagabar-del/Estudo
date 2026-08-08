@@ -946,7 +946,7 @@
       <!-- PLANO SEMANAL -->
       <div class="page" id="page-cronograma">
         <div class="page-heading plan-heading">
-          <div><span class="eyebrow">Plano semanal</span><h2>Organize sua próxima etapa</h2><p>Defina disciplina, assunto, atividade e meta. Se um dia não for cumprido, a tarefa fica pendente até você decidir o que fazer.</p></div>
+          <div><span class="eyebrow">Plano semanal</span><h2>Organize sua próxima etapa</h2><p>A trilha é gerada pela sua disponibilidade e pode ser ajustada manualmente. Se um dia não for cumprido, a tarefa fica pendente até você decidir o que fazer.</p></div>
           <button class="btn btn-primary" onclick="togglePlanEditor()"><i class="ti ti-pencil"></i> Editar plano</button>
         </div>
         <div id="plan-summary" class="plan-summary"></div>
@@ -1017,6 +1017,10 @@
   let perfilAtual = null;
   let disponibilidadeAtual = [];
   let concursoBNBId = null;
+  let agendaSemanaAtual = [];
+  let trilhaBNBAtual = [];
+  let disciplinasRemotas = [];
+  let semanaAgendaKey = '';
   let onboardingEdicao = false;
   const SESSION_KEY = 'md_trilha_supabase_session';
   let userMeta     = {
@@ -1024,7 +1028,7 @@
     cronograma: { Segunda:'Conhecimentos Bancários', Terça:'Vendas e Negociação', Quarta:'Informática', Quinta:'Português', Sexta:'Revisão e Questões', Sábado:'Livre', Domingo:'Livre' }
   };
 
-  let timerInterval = null, timerSec = 0, timerPaused = false, timerMat = '', timerAssunto = '', timerMetaOverride = null, timerPlanoDataKey = null;
+  let timerInterval = null, timerSec = 0, timerPaused = false, timerMat = '', timerAssunto = '', timerMetaOverride = null, timerPlanoDataKey = null, timerAgendaId = null;
   let conteudoExtra = { tipo: null, texto: null, base64: null, mimeType: null }; // conteúdo extra para IA
   let qMat = '', qQtd = 10, qModo = 'rapida', qBancoFiltrado = [], questoesList = [], qAtual = 0, qAcertos = 0, qErros = 0, qRespondida = false, qSessaoRespostas = [];
   let revPeriodo = 'semana', revQtd = 20, revList = [], revAtual = 0, revAcertos = 0, revErros = 0, revRespondida = false, revSessaoRespostas = [];
@@ -1094,6 +1098,98 @@
     const rows = await supa('/rest/v1/concursos?select=id,nome&slug=eq.bnb&limit=1');
     concursoBNBId = rows?.[0]?.id || null;
     return concursoBNBId;
+  }
+
+  async function carregarBaseEstudoRemota() {
+    await carregarBaseBNB();
+    const [disciplinas, trilha] = await Promise.all([
+      supa('/rest/v1/disciplinas?select=id,slug,nome&ativo=eq.true&order=ordem.asc'),
+      supa(`/rest/v1/trilha_concurso?select=id,ordem,prioridade,carga_estimada_minutos,assunto_id,assuntos(id,nome,slug,disciplina_id,disciplinas(id,nome,slug))&concurso_id=eq.${concursoBNBId}&ativo=eq.true&order=ordem.asc`)
+    ]);
+    disciplinasRemotas = disciplinas || [];
+    trilhaBNBAtual = (trilha || []).map(t => ({
+      ...t,
+      assunto: t.assuntos?.nome || '',
+      assuntoSlug: t.assuntos?.slug || '',
+      disciplinaId: t.assuntos?.disciplina_id || null,
+      disciplina: t.assuntos?.disciplinas?.nome || 'Conhecimentos Bancários'
+    }));
+  }
+
+  function disponibilidadeParaData(data) {
+    const dia = new Date(data).getDay();
+    return disponibilidadeAtual.find(d => Number(d.dia_semana) === dia) || null;
+  }
+
+  function agendaParaPlano(row) {
+    if (!row) return { disciplina:'Livre', disciplinaId:null, assunto:'', assuntoId:null, atividade:'livre', duracao:0, questoes:0, agendaId:null, status:'livre' };
+    return {
+      disciplina: row.disciplinas?.nome || row.estado?.disciplina || 'Conhecimentos Bancários',
+      disciplinaId: row.disciplina_id || null,
+      assunto: row.assuntos?.nome || row.assunto_livre || '',
+      assuntoId: row.assunto_id || null,
+      atividade: row.tipo_atividade || 'teoria_questoes',
+      duracao: Number(row.duracao_planejada_minutos)||60,
+      questoes: Number(row.questoes_planejadas)||20,
+      agendaId: row.id,
+      status: row.status || 'planejada',
+      geradoAutomaticamente: !!row.gerado_automaticamente
+    };
+  }
+
+  async function carregarAgendaSemana(ref = new Date()) {
+    const ini = inicioSemanaLocal(ref), fim = new Date(ini); fim.setDate(fim.getDate()+7);
+    const key = dataLocalKey(ini);
+    const rows = await supa(`/rest/v1/agenda_estudo?select=id,data,tipo_atividade,duracao_planejada_minutos,questoes_planejadas,status,origem,assunto_livre,ordem_no_dia,gerado_automaticamente,disciplina_id,assunto_id,disciplinas(id,nome),assuntos(id,nome)&concurso_id=eq.${concursoBNBId}&data=gte.${dataLocalKey(ini)}&data=lt.${dataLocalKey(fim)}&order=data.asc,ordem_no_dia.asc`);
+    agendaSemanaAtual = rows || [];
+    semanaAgendaKey = key;
+    return agendaSemanaAtual;
+  }
+
+  async function gerarAgendaSemanaSeNecessario(ref = new Date()) {
+    await carregarBaseEstudoRemota();
+    await carregarAgendaSemana(ref);
+    if (agendaSemanaAtual.length) return agendaSemanaAtual;
+    const uid = currentUser?.user?.id;
+    if (!uid || !concursoBNBId || !trilhaBNBAtual.length) return [];
+
+    const historico = await supa(`/rest/v1/agenda_estudo?select=assunto_id,duracao_planejada_minutos&concurso_id=eq.${concursoBNBId}&gerado_automaticamente=eq.true&order=data.asc`);
+    const planejado = {};
+    (historico||[]).forEach(r => { if (r.assunto_id) planejado[r.assunto_id]=(planejado[r.assunto_id]||0)+(Number(r.duracao_planejada_minutos)||0); });
+    let idx = trilhaBNBAtual.findIndex(t => (planejado[t.assunto_id]||0) < (Number(t.carga_estimada_minutos)||60));
+    if (idx < 0) idx = 0;
+    const ini = inicioSemanaLocal(ref), rows=[];
+    for (let off=0; off<7; off++) {
+      const data = new Date(ini); data.setDate(ini.getDate()+off);
+      const disp = disponibilidadeParaData(data);
+      if (!disp?.disponivel || Number(disp.minutos_disponiveis)<=0) continue;
+      let bloco = trilhaBNBAtual[idx];
+      if (!bloco) { idx=0; bloco=trilhaBNBAtual[0]; }
+      const carga = Number(bloco.carga_estimada_minutos)||60;
+      const ja = planejado[bloco.assunto_id]||0;
+      let restante = Math.max(30, carga-ja);
+      const disponivel = Math.max(30, Number(disp.minutos_disponiveis)||60);
+      const duracao = Math.min(disponivel, restante);
+      rows.push({
+        user_id:uid, concurso_id:concursoBNBId, disciplina_id:bloco.disciplinaId,
+        assunto_id:bloco.assunto_id, data:dataLocalKey(data), tipo_atividade:'teoria_questoes',
+        duracao_planejada_minutos:duracao, questoes_planejadas:duracao<=60?10:duracao<=90?15:20,
+        status:'planejada', origem:'trilha', ordem_no_dia:1, gerado_automaticamente:true
+      });
+      planejado[bloco.assunto_id]=ja+duracao;
+      if (planejado[bloco.assunto_id] >= carga) idx++;
+    }
+    if (rows.length) await supa('/rest/v1/agenda_estudo?on_conflict=user_id,data,ordem_no_dia',{method:'POST',headers:{'Prefer':'resolution=merge-duplicates,return=representation'},body:JSON.stringify(rows)});
+    return carregarAgendaSemana(ref);
+  }
+
+  async function recalcularAgendaFutura() {
+    const hoje=dataLocalKey(new Date());
+    try {
+      await supa(`/rest/v1/agenda_estudo?data=gte.${hoje}&gerado_automaticamente=eq.true`,{method:'DELETE',headers:{'Prefer':'return=minimal'}});
+    } catch(e) { console.warn('Não foi possível limpar a agenda futura:', e); }
+    agendaSemanaAtual=[]; semanaAgendaKey='';
+    await gerarAgendaSemanaSeNecessario(new Date());
   }
 
   async function carregarPerfilRemoto() {
@@ -1185,6 +1281,7 @@
       const rows=[1,2,3,4,5,6,0].map(n=>({user_id:uid,dia_semana:n,disponivel:document.getElementById('onb-dia-'+n).checked,minutos_disponiveis:Number(document.getElementById('onb-min-'+n).value)||60}));
       await supa('/rest/v1/disponibilidade_usuario?on_conflict=user_id,dia_semana',{method:'POST',headers:{'Prefer':'resolution=merge-duplicates,return=representation'},body:JSON.stringify(rows)});
       await carregarPerfilRemoto();
+      await recalcularAgendaFutura();
       document.getElementById('onboarding-screen').style.display='none';
       await entrarNoApp(currentUser.user.email);
     } catch(e) { console.error(e); msg.textContent='Não foi possível salvar sua rotina: '+e.message; }
@@ -1246,6 +1343,7 @@
     carregarConfig();
     aplicarDisponibilidadeAoMeta();
     renderConfig();
+    await gerarAgendaSemanaSeNecessario(new Date());
     renderDashboard();
   }
 
@@ -1444,13 +1542,17 @@
 
   function planoParaData(data) {
     const chave = dataLocalKey(data);
+    const remoto = agendaSemanaAtual.find(r => r.data === chave && Number(r.ordem_no_dia||1)===1);
+    if (remoto) return agendaParaPlano(remoto);
+    const disp = disponibilidadeParaData(data);
+    if (disp && (!disp.disponivel || Number(disp.minutos_disponiveis)<=0)) return { disciplina:'Livre', assunto:'', atividade:'livre', duracao:0, questoes:0 };
     const excecao = userMeta.excecoesPlano?.[chave];
     if (excecao) return normalizarPlanoDia(excecao);
     return normalizarPlanoDia(userMeta.cronograma?.[diaNomeDaData(data)]);
   }
 
   function formatarAtividade(plano) {
-    const nomes = { estudo:'Teoria / estudo', questoes:'Questões', revisao:'Revisão', simulado:'Simulado' };
+    const nomes = { estudo:'Teoria / estudo', teoria:'Só teoria', teoria_questoes:'Teoria + questões', questoes:'Só questões', revisao:'Revisão', simulado:'Simulado', livre:'Descanso' };
     return nomes[plano.atividade] || 'Estudo';
   }
 
@@ -1554,6 +1656,7 @@
   // ─── DASHBOARD ────────────────────────────────────────────
   async function renderDashboard() {
     document.getElementById('streak-num').textContent = '...';
+    try { await gerarAgendaSemanaSeNecessario(new Date()); } catch(e) { console.error('Plano:',e); }
     try {
       const hojeDate=new Date(), hoje=dataLocalKey(hojeDate), semIni=dataLocalKey(inicioSemanaLocal(hojeDate));
       const amanha=new Date(hojeDate); amanha.setDate(amanha.getDate()+1);
@@ -1580,7 +1683,7 @@
       const hora=hojeDate.getHours(), saudacao=hora<12?'Bom dia':hora<18?'Boa tarde':'Boa noite';
       const nome=perfilAtual?.nome||currentUser?.user?.user_metadata?.nome||currentUser?.user?.email?.split('@')[0]||'';
       document.getElementById('hero-greeting').textContent=`${saudacao}${nome?', '+nome:''}.`;
-      document.getElementById('hero-plan').textContent=planoHoje.disciplina==='Livre'?'Hoje está marcado como descanso. Você pode manter a pausa ou fazer uma prática rápida.':`${planoHoje.disciplina}${planoHoje.assunto?' · '+planoHoje.assunto:''} — ${formatarAtividade(planoHoje)}, meta de ${planoHoje.atividade==='estudo'?planoHoje.duracao+' min':planoHoje.questoes+' questões'}.`;
+      document.getElementById('hero-plan').textContent=planoHoje.disciplina==='Livre'?'Hoje está marcado como descanso. Você pode manter a pausa ou fazer uma prática rápida.':`${planoHoje.disciplina}${planoHoje.assunto?' · '+planoHoje.assunto:''} — ${formatarAtividade(planoHoje)}, ${planoHoje.duracao||0} min${planoHoje.atividade!=='teoria'&&planoHoje.questoes?' + '+planoHoje.questoes+' questões':''}.`;
       const porDisc={}; (qTodos||[]).forEach(q=>{if(!porDisc[q.disciplina])porDisc[q.disciplina]={total:0,acertos:0};porDisc[q.disciplina].total+=Number(q.total)||0;porDisc[q.disciplina].acertos+=Number(q.acertos)||0;});
       const mats=Object.entries(porDisc).sort((a,b)=>(b[1].acertos/b[1].total)-(a[1].acertos/a[1].total));
       document.getElementById('materias-bars').innerHTML=mats.length===0?'<div class="empty" style="padding:20px 0">Nenhuma questão ainda.</div>':mats.map(([mat,d])=>{const p=Math.round(d.acertos/d.total*100),clr=p>=70?'var(--fill-success)':p>=50?'var(--fill-warning)':'var(--fill-danger)';return `<div class="materia-bar"><div class="materia-name">${escapeHtml(mat)}</div><div class="bar-track"><div class="bar-fill" style="width:${p}%;background:${clr}"></div></div><div class="bar-pct" style="color:${clr}">${p}%</div></div>`;}).join('');
@@ -1745,8 +1848,9 @@
     try { await carregarBaseBNB(); await supa('/rest/v1/sessoes_estudo', { method:'POST', body: JSON.stringify({ user_id: currentUser.user.id, concurso_id: concursoBNBId, tipo_atividade:'teoria', status:'concluida', finalizado_em:new Date().toISOString(), duracao_real_minutos:Math.max(1,Math.round(timerSec/60)), estado:{disciplina:timerMat,assunto:timerAssunto||null,streak} }) }); }
     catch(e) { console.error('Erro ao salvar sessão:', e); }
     sessaoAtual = { materia: timerMat, assunto: timerAssunto, conteudoExtra: conteudoFinal };
+    if (timerAgendaId) { try { await supa(`/rest/v1/agenda_estudo?id=eq.${timerAgendaId}`,{method:'PATCH',body:JSON.stringify({status:'concluida'})}); await carregarAgendaSemana(new Date()); } catch(e){ console.warn('Agenda não atualizada:',e); } }
     if (timerPlanoDataKey) { userMeta.statusPlano = userMeta.statusPlano || {}; userMeta.statusPlano[timerPlanoDataKey] = 'recuperada'; salvarUserMeta(); }
-    timerMetaOverride = null; timerPlanoDataKey = null;
+    timerMetaOverride = null; timerPlanoDataKey = null; timerAgendaId = null;
     const h=Math.floor(timerSec/3600), m=Math.floor((timerSec%3600)/60);
     // Reset completo
     timerMat = ''; timerAssunto = ''; conteudoExtra = { tipo: null };
@@ -2195,22 +2299,31 @@
   function renderPlanEditor() {
     const c = document.getElementById('cfg-cronograma');
     if (!c) return;
-    const disciplinas = ['Conhecimentos Bancários','Vendas e Negociação','Informática','Português','Matemática','Livre'];
+    const disciplinas = (disciplinasRemotas.length ? disciplinasRemotas : DISCIPLINAS.map((d,i)=>({id:'',nome:d.nome}))).concat([{id:'',nome:'Livre'}]);
     const atividades = [
-      ['estudo','Teoria / estudo'],['questoes','Questões'],['revisao','Revisão'],['simulado','Simulado']
+      ['teoria_questoes','Teoria + questões'],['teoria','Só teoria'],['questoes','Só questões'],['revisao','Revisão'],['simulado','Simulado']
     ];
     c.innerHTML = DIAS_SEMANA.map(dia => {
-      const p = normalizarPlanoDia(userMeta.cronograma?.[dia]);
-      const optsDisc = disciplinas.map(o=>`<option value="${escapeHtml(o)}"${o===p.disciplina?' selected':''}>${escapeHtml(o)}</option>`).join('');
+      const data=dataDaSemana(dia,new Date()), p=planoParaData(data);
+      const optsDisc = disciplinas.map(o=>`<option value="${escapeHtml(String(o.id||''))}" data-nome="${escapeHtml(o.nome)}"${o.nome===p.disciplina?' selected':''}>${escapeHtml(o.nome)}</option>`).join('');
       const optsAtiv = atividades.map(([v,l])=>`<option value="${v}"${v===p.atividade?' selected':''}>${l}</option>`).join('');
+      const desabilitado=p.disciplina==='Livre';
       return `<div class="plan-edit-row"><div class="plan-edit-day">${dia}</div><div class="plan-edit-grid">
-        <select id="cfg-dia-${dia}">${optsDisc}</select>
-        <input type="text" id="cfg-assunto-${dia}" value="${escapeHtml(p.assunto)}" placeholder="Assunto">
-        <select id="cfg-atividade-${dia}">${optsAtiv}</select>
-        <input type="number" id="cfg-duracao-${dia}" value="${p.duracao}" min="10" max="360" title="Minutos">
-        <input type="number" id="cfg-questoes-${dia}" value="${p.questoes}" min="1" max="200" title="Questões">
+        <select id="cfg-dia-${dia}" onchange="ajustarCamposPlano('${dia}')">${optsDisc}</select>
+        <input type="text" id="cfg-assunto-${dia}" value="${escapeHtml(p.assunto)}" placeholder="Assunto" ${desabilitado?'disabled':''}>
+        <select id="cfg-atividade-${dia}" onchange="ajustarCamposPlano('${dia}')" ${desabilitado?'disabled':''}>${optsAtiv}</select>
+        <div><div style="font-size:10px;color:var(--text-muted);margin:0 0 4px 5px">Tempo</div><div style="display:flex;align-items:center;gap:5px"><input type="number" id="cfg-duracao-${dia}" value="${p.duracao||60}" min="10" max="360" style="width:72px" ${desabilitado?'disabled':''}><span style="font-size:11px;color:var(--text-muted)">min</span></div></div>
+        <div><div style="font-size:10px;color:var(--text-muted);margin:0 0 4px 5px">Questões</div><input type="number" id="cfg-questoes-${dia}" value="${p.questoes||20}" min="0" max="200" style="width:78px" ${desabilitado||p.atividade==='teoria'?'disabled':''}></div>
       </div></div>`;
     }).join('');
+  }
+
+  function ajustarCamposPlano(dia) {
+    const disc=document.getElementById('cfg-dia-'+dia), ativ=document.getElementById('cfg-atividade-'+dia);
+    const nome=disc?.selectedOptions?.[0]?.dataset?.nome || 'Livre';
+    const livre=nome==='Livre', soTeoria=ativ?.value==='teoria';
+    ['cfg-assunto-','cfg-atividade-','cfg-duracao-'].forEach(p=>{const el=document.getElementById(p+dia);if(el)el.disabled=livre;});
+    const q=document.getElementById('cfg-questoes-'+dia); if(q)q.disabled=livre||soTeoria;
   }
 
   function togglePlanEditor() {
@@ -2229,6 +2342,7 @@
     timerAssunto = plano.assunto || '';
     timerMetaOverride = Math.max(10, plano.duracao || 60) * 60;
     timerPlanoDataKey = dataKey;
+    timerAgendaId = plano.agendaId || null;
     const nav = [...document.querySelectorAll('.nav-item')].find(n=>n.textContent.includes('Estudar agora'));
     goTo('timer', nav);
     document.querySelectorAll('#disciplinas-timer .mat-btn').forEach(b=>b.classList.toggle('active', b.textContent.trim()===plano.disciplina));
@@ -2265,6 +2379,7 @@
 
   async function renderCronograma() {
     const hoje = new Date();
+    try { await gerarAgendaSemanaSeNecessario(hoje); } catch(e) { console.error('Agenda:',e); }
     const hojeKey = dataLocalKey(hoje);
     const ini = inicioSemanaLocal(hoje);
     const fim = new Date(ini); fim.setDate(fim.getDate()+7);
@@ -2285,7 +2400,7 @@
       const data = dataDaSemana(dia, hoje); const key = dataLocalKey(data); const plano = planoParaData(data);
       const livre = plano.disciplina === 'Livre'; const isHoje = key === hojeKey; const futuro = key > hojeKey;
       const manual = userMeta.statusPlano?.[key];
-      const concluido = manual === 'recuperada' || planoConcluido(data, plano, sessoesSem||[], qSem||[]);
+      const concluido = plano.status==='concluida' || manual === 'recuperada' || planoConcluido(data, plano, sessoesSem||[], qSem||[]);
       let status='planned', badge='<span class="cron-badge badge-planejado">Planejado</span>', classe='';
       if (livre) { status='free'; badge='<span class="cron-badge badge-livre">Descanso</span>'; }
       else if (manual==='ignorado') { status='ignored'; classe='status-ignored'; badge='<span class="cron-badge badge-livre">Ignorado</span>'; }
@@ -2294,7 +2409,7 @@
       else if (!futuro && !isHoje) { status='pending'; classe='status-pending'; badge='<span class="cron-badge badge-pendente">Pendente</span>'; }
       else if (isHoje) { status='today'; classe='status-today'; badge='<span class="cron-badge badge-hoje">Hoje</span>'; }
 
-      const detalheMeta = plano.atividade==='estudo' ? `${plano.duracao} min` : `${plano.questoes} questões`;
+      const detalheMeta = plano.atividade==='teoria' ? `${plano.duracao} min` : plano.atividade==='questoes' ? `${plano.questoes} questões` : plano.atividade==='livre' ? '' : `${plano.duracao} min · ${plano.questoes} questões`;
       let actions='';
       if (status==='pending') actions = `<div class="cron-actions"><button class="btn btn-primary btn-sm" onclick="iniciarPlanoData('${key}')">Fazer agora</button><button class="btn btn-sm" onclick="moverPendencia('${key}')">Mover para dia livre</button><button class="btn btn-sm" onclick="ignorarPendencia('${key}')">Ignorar</button></div>`;
       else if (status==='today' || (status==='planned' && !livre)) actions = `<div class="cron-actions"><button class="btn btn-primary btn-sm" onclick="iniciarPlanoData('${key}')">Começar atividade</button></div>`;
@@ -2329,22 +2444,34 @@
 
   function salvarMeta() { userMeta.metaSec=parseInt(document.getElementById('cfg-meta').value); salvarUserMeta(); }
 
-  function salvarCronograma() {
-    userMeta.cronograma = userMeta.cronograma || {};
-    DIAS_SEMANA.forEach(dia => {
-      const disciplina = document.getElementById('cfg-dia-'+dia)?.value || 'Livre';
-      userMeta.cronograma[dia] = {
-        disciplina,
-        assunto: disciplina==='Livre' ? '' : (document.getElementById('cfg-assunto-'+dia)?.value.trim() || ''),
-        atividade: document.getElementById('cfg-atividade-'+dia)?.value || 'estudo',
-        duracao: Number(document.getElementById('cfg-duracao-'+dia)?.value) || 60,
-        questoes: Number(document.getElementById('cfg-questoes-'+dia)?.value) || 20
-      };
-    });
-    salvarUserMeta();
-    document.getElementById('plan-editor').style.display='none';
-    renderCronograma(); renderDashboard();
+  async function salvarCronograma() {
+    try {
+      await carregarBaseEstudoRemota();
+      const uid=currentUser.user.id, rows=[];
+      DIAS_SEMANA.forEach(dia => {
+        const data=dataDaSemana(dia,new Date());
+        const discSel=document.getElementById('cfg-dia-'+dia);
+        const disciplina=discSel?.selectedOptions?.[0]?.dataset?.nome || 'Livre';
+        if(disciplina==='Livre') return;
+        const disciplinaId=Number(discSel?.value)||disciplinasRemotas.find(d=>d.nome===disciplina)?.id||null;
+        const assunto=(document.getElementById('cfg-assunto-'+dia)?.value.trim() || '');
+        const atividade=document.getElementById('cfg-atividade-'+dia)?.value || 'teoria_questoes';
+        rows.push({
+          user_id:uid, concurso_id:concursoBNBId, disciplina_id:disciplinaId, assunto_id:null, assunto_livre:assunto,
+          data:dataLocalKey(data), tipo_atividade:atividade, duracao_planejada_minutos:Number(document.getElementById('cfg-duracao-'+dia)?.value)||60,
+          questoes_planejadas:atividade==='teoria'?0:(Number(document.getElementById('cfg-questoes-'+dia)?.value)||20),
+          status:'planejada', origem:'manual', ordem_no_dia:1, gerado_automaticamente:false
+        });
+      });
+      const ini=inicioSemanaLocal(new Date()), fim=new Date(ini); fim.setDate(fim.getDate()+7);
+      await supa(`/rest/v1/agenda_estudo?data=gte.${dataLocalKey(ini)}&data=lt.${dataLocalKey(fim)}`,{method:'DELETE',headers:{'Prefer':'return=minimal'}});
+      if(rows.length) await supa('/rest/v1/agenda_estudo?on_conflict=user_id,data,ordem_no_dia',{method:'POST',headers:{'Prefer':'resolution=merge-duplicates,return=representation'},body:JSON.stringify(rows)});
+      await carregarAgendaSemana(new Date());
+      document.getElementById('plan-editor').style.display='none';
+      await renderCronograma(); await renderDashboard();
+    } catch(e) { console.error(e); alert('Não foi possível salvar o plano: '+e.message); }
   }
+
 
   document.addEventListener('DOMContentLoaded', async () => {
     montarRotinaUI();
