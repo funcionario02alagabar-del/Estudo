@@ -3,7 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MD Trilha — Plataforma de Estudos</title>
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <title>MD Trilha v1.8 — Plataforma de Estudos</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/tabler-icons.min.css">
   <style>
     :root {
@@ -545,7 +548,7 @@
 <div id="main-app" class="main-app" style="display:none">
   <div class="sidebar">
     <div class="sidebar-logo"><span class="brand-mark">M</span><span><strong>MD</strong> Trilha</span></div>
-    <div class="sidebar-user" id="sidebar-user"></div><div id="sidebar-concurso" style="font-size:11px;color:rgba(255,255,255,.65);padding:0 18px 14px"></div>
+    <div class="sidebar-user" id="sidebar-user"></div><div id="sidebar-concurso" style="font-size:11px;color:rgba(255,255,255,.65);padding:0 18px 4px"></div><div style="font-size:10px;color:rgba(255,255,255,.42);padding:0 18px 12px">Versão v1.8</div>
     <div class="nav-group-label">Sua trilha</div>
     <div class="nav-item mobile-primary active" onclick="goTo('dashboard',this)"><i class="ti ti-home"></i> Início</div>
     <div class="nav-item mobile-primary" onclick="goTo('cronograma',this)"><i class="ti ti-calendar-event"></i> Plano semanal</div>
@@ -601,8 +604,8 @@
       <div class="page" id="page-timer">
         <div id="study-focus" class="study-focus-card" style="display:none">
           <div class="study-focus-head">
-            <div><div class="study-focus-kicker">Sua próxima atividade</div><div class="study-focus-title" id="study-focus-title">Carregando...</div><div class="study-focus-sub" id="study-focus-sub"></div><div class="study-badges" id="study-focus-badges"></div></div>
-            <button class="btn btn-sm" onclick="ocultarFocoEstudo()">Escolher outro assunto</button>
+            <div><div class="study-focus-kicker" id="study-focus-kicker">Sua atividade</div><div class="study-focus-title" id="study-focus-title">Carregando...</div><div class="study-focus-sub" id="study-focus-sub"></div><div class="study-badges" id="study-focus-badges"></div></div>
+            <button class="btn btn-sm" onclick="document.getElementById('study-topic-switch').style.display='flex'">Escolher outro assunto</button>
           </div>
           <div class="study-meta-row"><span><strong id="study-focus-time">—</strong> planejados</span><span><strong id="study-focus-qtd">—</strong> questões mapeadas</span><span id="study-focus-progress">Ainda sem histórico</span></div>
           <div class="study-panel" style="margin-bottom:12px"><div class="study-panel-title"><i class="ti ti-target-arrow"></i> Por que estudar isto agora?</div><div class="study-panel-body" id="study-focus-why"><span class="study-empty">A trilha está calculando a prioridade deste bloco.</span></div></div>
@@ -614,6 +617,7 @@
           <div id="study-focus-update-wrap" class="study-panel" style="display:none;margin-top:12px"><div class="study-panel-title"><i class="ti ti-refresh"></i> Atualização importante</div><div class="study-panel-body" id="study-focus-update"></div></div>
           <div id="study-focus-sources-wrap" class="study-panel" style="display:none;margin-top:12px"><div class="study-panel-title"><i class="ti ti-link"></i> Fontes oficiais</div><div class="study-panel-body" id="study-focus-sources"></div></div>
           <div class="study-actions"><button class="btn btn-primary" onclick="iniciarFocoEstudo()"><i class="ti ti-player-play"></i> Iniciar esta atividade</button><button class="btn" id="study-focus-practice" onclick="praticarFocoEstudo()"><i class="ti ti-list-check"></i> Praticar este assunto</button></div>
+          <div id="study-topic-switch" style="display:none;gap:8px;align-items:center;margin-top:14px;padding-top:14px;border-top:1px solid var(--border);flex-wrap:wrap"><select id="study-topic-select" class="form-input" style="flex:1;min-width:250px"></select><button class="btn btn-primary btn-sm" onclick="abrirAssuntoDaTrilha()">Abrir assunto</button><button class="btn btn-sm" onclick="this.parentElement.style.display='none'">Cancelar</button></div>
         </div>
         <div class="card" id="timer-manual-card" style="max-width:480px;margin:0 auto">
           <div id="timer-step1">
@@ -1406,11 +1410,72 @@
 
   let studyFocusPlano = null;
   let studyFocusData = null;
+  let studyFocusOverride = null;
 
   function ocultarFocoEstudo(){
+    studyFocusOverride=null;
     document.getElementById('study-focus').style.display='none';
     document.getElementById('timer-manual-card').style.display='block';
     timerAgendaId=null; timerPlanoDataKey=null; timerMetaOverride=null;
+  }
+
+  function montarSeletorAssuntosTrilha(selecionadoId=null){
+    const sel=document.getElementById('study-topic-select');
+    if(!sel) return;
+    const itens=(trilhaAtual||[]).slice().sort((a,b)=>Number(a.ordem||0)-Number(b.ordem||0));
+    sel.innerHTML=itens.map(t=>`<option value="${t.assunto_id}">${esc(t.disciplina)} · ${esc(t.assunto)} (P${t.prioridade})</option>`).join('');
+    if(selecionadoId) sel.value=String(selecionadoId);
+  }
+
+  async function abrirAssuntoDaTrilha(){
+    const sel=document.getElementById('study-topic-select');
+    const id=Number(sel?.value||0);
+    const t=(trilhaAtual||[]).find(x=>Number(x.assunto_id)===id);
+    if(!t) return;
+    const disp=disponibilidadeParaData(new Date());
+    const minutos=Math.max(30,Math.min(Number(disp?.minutos_disponiveis)||60,Number(t.carga_estimada_minutos)||60));
+    studyFocusOverride={
+      disciplina:t.disciplina, disciplinaId:t.disciplinaId,
+      assunto:t.assunto, assuntoId:t.assunto_id,
+      atividade:'teoria_questoes', duracao:minutos,
+      questoes:minutos<=60?10:minutos<=90?15:20,
+      agendaId:null, status:'escolhido', geradoAutomaticamente:false
+    };
+    studyFocusData=dataLocalKey(new Date());
+    document.getElementById('study-topic-switch').style.display='none';
+    await renderEstudarAgora();
+  }
+
+  async function buscarFocoAutomatico(){
+    const hoje=new Date(), hojeKey=dataLocalKey(hoje);
+    await gerarAgendaSemanaSeNecessario(hoje);
+    const hojePlano=planoParaData(hoje);
+    if(hojePlano && hojePlano.disciplina!=='Livre') return {plano:hojePlano,dataKey:hojeKey,kicker:'Sua atividade de hoje'};
+
+    const campos='id,data,tipo_atividade,duracao_planejada_minutos,questoes_planejadas,status,origem,assunto_livre,ordem_no_dia,gerado_automaticamente,disciplina_id,assunto_id,disciplinas(id,nome),assuntos(id,nome)';
+    let atrasadas=await supa(`/rest/v1/agenda_estudo?select=${campos}&concurso_id=eq.${concursoAtualId}&data=lt.${hojeKey}&status=in.(planejada,pendente,movida)&order=data.asc,ordem_no_dia.asc&limit=1`).catch(()=>[]);
+    if(atrasadas?.[0]){
+      const r=atrasadas[0];
+      const dt=new Date(r.data+'T12:00:00').toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'2-digit'});
+      return {plano:agendaParaPlano(r),dataKey:r.data,kicker:`Pendente de ${dt}`};
+    }
+
+    let futuras=await supa(`/rest/v1/agenda_estudo?select=${campos}&concurso_id=eq.${concursoAtualId}&data=gt.${hojeKey}&status=in.(planejada,pendente,movida)&order=data.asc,ordem_no_dia.asc&limit=1`).catch(()=>[]);
+    if(!futuras?.length){
+      const prox=new Date(hoje); prox.setDate(prox.getDate()+7);
+      await gerarAgendaSemanaSeNecessario(prox);
+      futuras=await supa(`/rest/v1/agenda_estudo?select=${campos}&concurso_id=eq.${concursoAtualId}&data=gt.${hojeKey}&status=in.(planejada,pendente,movida)&order=data.asc,ordem_no_dia.asc&limit=1`).catch(()=>[]);
+      await carregarAgendaSemana(hoje).catch(()=>{});
+    }
+    if(futuras?.[0]){
+      const r=futuras[0];
+      const dt=new Date(r.data+'T12:00:00').toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'2-digit'});
+      return {plano:agendaParaPlano(r),dataKey:r.data,kicker:`Próxima atividade · ${dt}`};
+    }
+
+    const t=(trilhaAtual||[])[0];
+    if(t) return {plano:{disciplina:t.disciplina,disciplinaId:t.disciplinaId,assunto:t.assunto,assuntoId:t.assunto_id,atividade:'teoria_questoes',duracao:60,questoes:10,agendaId:null,status:'sugerida'},dataKey:hojeKey,kicker:'Sugestão da trilha'};
+    return null;
   }
 
   async function renderEstudarAgora(){
@@ -1418,11 +1483,17 @@
     const manual=document.getElementById('timer-manual-card');
     if(!focus||!manual) return;
     try{
-      await gerarAgendaSemanaSeNecessario(new Date());
-      const dataKey=timerPlanoDataKey||dataLocalKey(new Date());
-      const plano=planoParaData(new Date(dataKey+'T12:00:00'));
-      if(!plano || plano.disciplina==='Livre') { focus.style.display='none'; manual.style.display='block'; return; }
+      await carregarBaseEstudoRemota();
+      let resolved;
+      if(studyFocusOverride){
+        resolved={plano:studyFocusOverride,dataKey:studyFocusData||dataLocalKey(new Date()),kicker:'Assunto escolhido por você'};
+      }else{
+        resolved=await buscarFocoAutomatico();
+      }
+      if(!resolved?.plano || resolved.plano.disciplina==='Livre') { focus.style.display='none'; manual.style.display='block'; return; }
+      const plano=resolved.plano, dataKey=resolved.dataKey;
       studyFocusPlano=plano; studyFocusData=dataKey;
+      const kicker=document.getElementById('study-focus-kicker'); if(kicker) kicker.textContent=resolved.kicker||'Sua atividade';
       document.getElementById('study-focus-title').textContent=plano.assunto||plano.disciplina;
       document.getElementById('study-focus-sub').textContent=`${plano.disciplina} · ${formatarAtividade(plano)}`;
       document.getElementById('study-focus-time').textContent=`${plano.duracao||60} min`;
@@ -1456,7 +1527,8 @@
       document.getElementById('study-focus-progress').textContent = (pg||pp)
         ? `Domínio global ${Math.round(Number(pg?.nivel_dominio)||0)}% · Prontidão ${nomeConcursoAtual()} ${Math.round(Number(pp?.nivel_prontidao)||0)}%`
         : 'Ainda sem histórico';
-      const motivo = trilha?.observacao || `Este bloco faz parte da sequência de ${nomeConcursoAtual()} e foi ajustado ao seu tempo disponível de hoje.`;
+      let motivo = trilha?.observacao || `Este bloco faz parte da sequência de ${nomeConcursoAtual()} e foi ajustado ao seu tempo disponível.`;
+      if(studyFocusOverride) motivo=`Você escolheu este assunto fora da ordem sugerida. O estudo conta normalmente para seu domínio e para a prontidão em ${nomeConcursoAtual()}.`;
       document.getElementById('study-focus-why').innerHTML=`${esc(motivo)}<div style="margin-top:8px;color:var(--text-muted);font-size:12px">O domínio deste assunto é reaproveitado se você trocar de concurso.</div>`;
       document.getElementById('study-focus-summary').innerHTML=resumo?.[0] ? `<strong>${esc(resumo[0].titulo)}</strong><div style="margin-top:8px;line-height:1.6">${esc(resumo[0].conteudo).replace(/\n/g,'<br>')}</div>${resumo[0].fonte_url?`<div style="margin-top:10px"><a href="${esc(resumo[0].fonte_url)}" target="_blank" rel="noopener">Consultar fonte-base</a></div>`:''}` : '<span class="study-empty">Resumo em preparação. Você já pode estudar pela aula/material próprio e praticar as questões mapeadas.</span>';
       document.getElementById('study-focus-class').innerHTML=(aulas||[]).length ? aulas.map((a,i)=>`<div style="${i?'margin-top:14px;padding-top:12px;border-top:1px solid var(--border)':''}"><strong>${i===0?'Principal':'Complementar'} · ${esc(a.titulo)}</strong><div style="margin-top:4px">${esc(a.professor_canal||'')}${a.nota_curadoria?` · curadoria ${a.nota_curadoria}/100`:''}</div><div style="margin-top:8px"><a class="btn btn-sm" href="${esc(a.url)}" target="_blank" rel="noopener">Abrir no YouTube${a.duracao_minutos?` · ${a.duracao_minutos} min`:''}</a></div></div>`).join('') : '<span class="study-empty">Aula principal ainda não cadastrada. A curadoria será adicionada sem alterar seu progresso.</span>';
@@ -1468,6 +1540,7 @@
       const sw=document.getElementById('study-focus-sources-wrap');
       if((fontes||[]).length){ sw.style.display='block'; document.getElementById('study-focus-sources').innerHTML=fontes.map(f=>`<div style="margin-bottom:7px">${f.fonte_url?`<a href="${esc(f.fonte_url)}" target="_blank" rel="noopener"><strong>${esc(f.fonte_nome||f.titulo)}</strong></a>`:`<strong>${esc(f.fonte_nome||f.titulo)}</strong>`}<div style="font-size:12px;color:var(--text-muted);margin-top:2px">${esc(f.conteudo||'')}</div></div>`).join(''); } else sw.style.display='none';
       document.getElementById('study-focus-practice').disabled=qtd===0;
+      montarSeletorAssuntosTrilha(plano.assuntoId);
       focus.style.display='block'; manual.style.display='none';
     }catch(e){ console.warn('Estudar agora:',e); focus.style.display='none'; manual.style.display='block'; }
   }
@@ -2549,7 +2622,11 @@ Vá para "Questões" para praticar!`);
     window.scrollTo({top:0,behavior:'smooth'});
   }
 
-  function iniciarPlanoHoje() { iniciarPlanoData(dataLocalKey(new Date())); }
+  function iniciarPlanoHoje() {
+    studyFocusOverride=null; timerPlanoDataKey=null; timerAgendaId=null;
+    const nav = [...document.querySelectorAll('.nav-item')].find(n=>n.textContent.includes('Estudar agora'));
+    goTo('timer', nav); window.scrollTo({top:0,behavior:'smooth'});
+  }
 
   function ignorarPendencia(dataKey) {
     userMeta.statusPlano = userMeta.statusPlano || {};
