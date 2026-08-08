@@ -482,6 +482,13 @@
     .routine-row input[type=checkbox]{width:18px;height:18px}.routine-row select{width:100%;padding:8px;border:1px solid var(--border);border-radius:9px;background:#fff}
     .onboarding-footer{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:22px}.onboarding-msg{font-size:12px;color:var(--text-danger);min-height:18px}.onboarding-actions{display:flex;gap:8px}
     @media(max-width:720px){.routine-grid{grid-template-columns:1fr}.onboarding-card{padding:22px}.onboarding-footer{align-items:stretch;flex-direction:column}.onboarding-actions{justify-content:flex-end}}
+
+    .study-focus-card{max-width:820px;margin:0 auto 18px;padding:20px;border:1px solid var(--border);border-radius:18px;background:linear-gradient(180deg,var(--surface-1),var(--surface-0));box-shadow:var(--shadow-sm)}
+    .study-focus-head{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;margin-bottom:14px}.study-focus-kicker{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--text-muted);font-weight:700}.study-focus-title{font-size:22px;font-weight:750;margin:3px 0 4px}.study-focus-sub{font-size:13px;color:var(--text-secondary)}
+    .study-badges{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}.study-badge{font-size:11px;font-weight:700;padding:5px 8px;border-radius:999px;background:var(--surface-2);border:1px solid var(--border)}.study-badge.hot{background:#fff3e7;color:#9a4b00;border-color:#f2d0aa}.study-badge.dynamic{background:#eef6ff;color:#235c94;border-color:#cddff2}
+    .study-grid{display:grid;grid-template-columns:1.2fr .8fr;gap:12px;margin-top:14px}.study-panel{border:1px solid var(--border);border-radius:14px;padding:14px;background:var(--surface-0)}.study-panel-title{font-size:12px;font-weight:750;margin-bottom:8px}.study-panel-body{font-size:13px;color:var(--text-secondary);line-height:1.55}.study-empty{font-size:12px;color:var(--text-muted)}
+    .study-actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:14px}.study-meta-row{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--text-secondary);margin-top:9px}.study-meta-row strong{color:var(--text-primary)}
+    @media(max-width:720px){.study-grid{grid-template-columns:1fr}.study-focus-head{flex-direction:column}.study-focus-card{padding:16px}}
 </style>
 </head>
 <body>
@@ -588,7 +595,20 @@
 
       <!-- TIMER -->
       <div class="page" id="page-timer">
-        <div class="card" style="max-width:480px;margin:0 auto">
+        <div id="study-focus" class="study-focus-card" style="display:none">
+          <div class="study-focus-head">
+            <div><div class="study-focus-kicker">Sua próxima atividade</div><div class="study-focus-title" id="study-focus-title">Carregando...</div><div class="study-focus-sub" id="study-focus-sub"></div><div class="study-badges" id="study-focus-badges"></div></div>
+            <button class="btn btn-sm" onclick="ocultarFocoEstudo()">Escolher outro assunto</button>
+          </div>
+          <div class="study-meta-row"><span><strong id="study-focus-time">—</strong> planejados</span><span><strong id="study-focus-qtd">—</strong> questões mapeadas</span><span id="study-focus-progress">Ainda sem histórico</span></div>
+          <div class="study-grid">
+            <div class="study-panel"><div class="study-panel-title"><i class="ti ti-notebook"></i> Resumo essencial</div><div class="study-panel-body" id="study-focus-summary"><span class="study-empty">Conteúdo em preparação.</span></div></div>
+            <div class="study-panel"><div class="study-panel-title"><i class="ti ti-video"></i> Aula recomendada</div><div class="study-panel-body" id="study-focus-class"><span class="study-empty">Curadoria em preparação.</span></div></div>
+          </div>
+          <div id="study-focus-update-wrap" class="study-panel" style="display:none;margin-top:12px"><div class="study-panel-title"><i class="ti ti-refresh"></i> Atualização importante</div><div class="study-panel-body" id="study-focus-update"></div></div>
+          <div class="study-actions"><button class="btn btn-primary" onclick="iniciarFocoEstudo()"><i class="ti ti-player-play"></i> Iniciar esta atividade</button><button class="btn" id="study-focus-practice" onclick="praticarFocoEstudo()"><i class="ti ti-list-check"></i> Praticar este assunto</button></div>
+        </div>
+        <div class="card" id="timer-manual-card" style="max-width:480px;margin:0 auto">
           <div id="timer-step1">
             <div class="card-title">O que você vai estudar hoje?</div>
             <div class="section-title" style="margin-top:8px">Disciplina</div>
@@ -1360,8 +1380,79 @@
     if (page === 'historico')  renderHistorico();
     if (page === 'config')     renderConfig();
     if (page === 'questoes')   checkSessaoAtual();
+    if (page === 'timer')      renderEstudarAgora();
     if (page === 'analise')    renderAnalise();
     if (page === 'revisao')  { resetRevSelect(); carregarPreviewRevisao(); }
+  }
+
+
+  let studyFocusPlano = null;
+  let studyFocusData = null;
+
+  function ocultarFocoEstudo(){
+    document.getElementById('study-focus').style.display='none';
+    document.getElementById('timer-manual-card').style.display='block';
+    timerAgendaId=null; timerPlanoDataKey=null; timerMetaOverride=null;
+  }
+
+  async function renderEstudarAgora(){
+    const focus=document.getElementById('study-focus');
+    const manual=document.getElementById('timer-manual-card');
+    if(!focus||!manual) return;
+    try{
+      await gerarAgendaSemanaSeNecessario(new Date());
+      const dataKey=timerPlanoDataKey||dataLocalKey(new Date());
+      const plano=planoParaData(new Date(dataKey+'T12:00:00'));
+      if(!plano || plano.disciplina==='Livre') { focus.style.display='none'; manual.style.display='block'; return; }
+      studyFocusPlano=plano; studyFocusData=dataKey;
+      document.getElementById('study-focus-title').textContent=plano.assunto||plano.disciplina;
+      document.getElementById('study-focus-sub').textContent=`${plano.disciplina} · ${formatarAtividade(plano)}`;
+      document.getElementById('study-focus-time').textContent=`${plano.duracao||60} min`;
+      const badges=document.getElementById('study-focus-badges'); badges.innerHTML='';
+      let assuntoInfo=null;
+      if(plano.assuntoId){
+        const rows=await supa(`/rest/v1/assuntos?select=id,nome,conteudo_dinamico&disciplina_id=eq.${plano.disciplinaId}&id=eq.${plano.assuntoId}&limit=1`);
+        assuntoInfo=rows?.[0]||null;
+      }
+      const trilha=trilhaBNBAtual.find(t=>Number(t.assunto_id)===Number(plano.assuntoId));
+      if(trilha){ const b=document.createElement('span'); b.className='study-badge hot'; b.textContent=`P${trilha.prioridade} · prioridade ${trilha.prioridade===1?'alta':'relevante'}`; badges.appendChild(b); }
+      if(assuntoInfo?.conteudo_dinamico){ const b=document.createElement('span'); b.className='study-badge dynamic'; b.textContent='Conteúdo dinâmico'; badges.appendChild(b); }
+
+      let qtd=0, resumo=[], atualiz=[], aulas=[], progresso=[];
+      if(plano.assuntoId){
+        [qtd,resumo,atualiz,aulas,progresso]=await Promise.all([
+          supa(`/rest/v1/questoes_assuntos?select=questao_id&assunto_id=eq.${plano.assuntoId}`,{headers:{'Range':'0-999'}}).then(r=>(r||[]).length).catch(()=>0),
+          supa(`/rest/v1/conteudos_estudo?select=titulo,conteudo,fonte_nome,fonte_url,revisado_em&assunto_id=eq.${plano.assuntoId}&tipo=eq.resumo_base&ativo=eq.true&order=ordem.asc&limit=1`).catch(()=>[]),
+          supa(`/rest/v1/conteudos_estudo?select=titulo,conteudo,fonte_nome,fonte_url,revisado_em&assunto_id=eq.${plano.assuntoId}&tipo=eq.atualizacao&ativo=eq.true&order=revisado_em.desc&limit=1`).catch(()=>[]),
+          supa(`/rest/v1/aulas?select=titulo,professor_canal,url,duracao_minutos,tipo,verificado_em&assunto_id=eq.${plano.assuntoId}&tipo=eq.principal&ativo=eq.true&order=ordem.asc&limit=1`).catch(()=>[]),
+          supa(`/rest/v1/progresso_assuntos?select=status,nivel_dominio,tempo_estudado_minutos,questoes_respondidas,questoes_corretas&concurso_id=eq.${concursoBNBId}&assunto_id=eq.${plano.assuntoId}&limit=1`).catch(()=>[])
+        ]);
+      }
+      document.getElementById('study-focus-qtd').textContent=String(qtd);
+      const p=progresso?.[0];
+      document.getElementById('study-focus-progress').textContent=p ? `Domínio ${Math.round(Number(p.nivel_dominio)||0)}% · ${Number(p.questoes_respondidas)||0} respondidas` : 'Ainda sem histórico';
+      document.getElementById('study-focus-summary').innerHTML=resumo?.[0] ? `<strong>${esc(resumo[0].titulo)}</strong><div style="margin-top:6px">${esc(resumo[0].conteudo).replace(/\n/g,'<br>')}</div>` : '<span class="study-empty">Resumo em preparação. Você já pode estudar pela aula/material próprio e praticar as questões mapeadas.</span>';
+      const aula=aulas?.[0];
+      document.getElementById('study-focus-class').innerHTML=aula ? `<strong>${esc(aula.titulo)}</strong><div style="margin-top:4px">${esc(aula.professor_canal||'')}</div><div style="margin-top:8px"><a class="btn btn-sm" href="${esc(aula.url)}" target="_blank" rel="noopener">Abrir aula${aula.duracao_minutos?` · ${aula.duracao_minutos} min`:''}</a></div>` : '<span class="study-empty">Aula principal ainda não cadastrada. A curadoria será adicionada sem alterar seu progresso.</span>';
+      const upd=atualiz?.[0], uw=document.getElementById('study-focus-update-wrap');
+      if(upd){ uw.style.display='block'; document.getElementById('study-focus-update').innerHTML=`<strong>${esc(upd.titulo)}</strong><div style="margin-top:6px">${esc(upd.conteudo).replace(/\n/g,'<br>')}</div>${upd.fonte_url?`<div style="margin-top:8px"><a href="${esc(upd.fonte_url)}" target="_blank" rel="noopener">Fonte oficial</a></div>`:''}`; }
+      else { uw.style.display=assuntoInfo?.conteudo_dinamico?'block':'none'; if(assuntoInfo?.conteudo_dinamico) document.getElementById('study-focus-update').innerHTML='<span class="study-empty">Atualização oficial em preparação.</span>'; }
+      document.getElementById('study-focus-practice').disabled=qtd===0;
+      focus.style.display='block'; manual.style.display='none';
+    }catch(e){ console.warn('Estudar agora:',e); focus.style.display='none'; manual.style.display='block'; }
+  }
+
+  function iniciarFocoEstudo(){
+    const plano=studyFocusPlano; if(!plano) return ocultarFocoEstudo();
+    timerMat=plano.disciplina; timerAssunto=plano.assunto||''; timerAgendaId=plano.agendaId||null; timerPlanoDataKey=studyFocusData; timerMetaOverride=Math.max(10,plano.duracao||60)*60;
+    document.querySelectorAll('#disciplinas-timer .mat-btn').forEach(b=>b.classList.toggle('active',b.textContent.trim()===plano.disciplina));
+    document.getElementById('input-assunto').value=timerAssunto;
+    document.getElementById('study-focus').style.display='none'; document.getElementById('timer-manual-card').style.display='block'; iniciarTimer();
+  }
+
+  function praticarFocoEstudo(){
+    const plano=studyFocusPlano; if(!plano) return;
+    irParaPratica(plano.disciplina,plano.assunto||'');
   }
 
   // ─── HELPERS ──────────────────────────────────────────────
@@ -2347,6 +2438,7 @@
     goTo('timer', nav);
     document.querySelectorAll('#disciplinas-timer .mat-btn').forEach(b=>b.classList.toggle('active', b.textContent.trim()===plano.disciplina));
     document.getElementById('input-assunto').value = plano.assunto || '';
+    renderEstudarAgora();
     window.scrollTo({top:0,behavior:'smooth'});
   }
 
