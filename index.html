@@ -472,7 +472,17 @@
       .manual-footer .btn { width:100%; }
     }
 
-  </style>
+  
+    /* Onboarding / rotina multiusuário */
+    .onboarding-wrap{display:none;min-height:100vh;align-items:center;justify-content:center;padding:24px;background:linear-gradient(135deg,var(--navy),#173c59)}
+    .onboarding-card{width:100%;max-width:760px;background:var(--surface-1);border-radius:24px;padding:30px;box-shadow:0 28px 80px rgba(0,0,0,.25)}
+    .onboarding-head h2{margin:0;color:var(--navy);font-size:26px}.onboarding-head p{margin:8px 0 22px;color:var(--text-muted);line-height:1.5}
+    .preset-row{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0 20px}.preset-btn{border:1px solid var(--border);background:#fff;border-radius:999px;padding:8px 12px;cursor:pointer;font:inherit;color:var(--text-secondary)}.preset-btn:hover{border-color:var(--fill-accent);color:var(--text-accent)}
+    .routine-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.routine-row{display:grid;grid-template-columns:1fr auto 110px;align-items:center;gap:10px;border:1px solid var(--border);border-radius:12px;padding:10px 12px;background:var(--surface-0)}
+    .routine-row input[type=checkbox]{width:18px;height:18px}.routine-row select{width:100%;padding:8px;border:1px solid var(--border);border-radius:9px;background:#fff}
+    .onboarding-footer{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:22px}.onboarding-msg{font-size:12px;color:var(--text-danger);min-height:18px}.onboarding-actions{display:flex;gap:8px}
+    @media(max-width:720px){.routine-grid{grid-template-columns:1fr}.onboarding-card{padding:22px}.onboarding-footer{align-items:stretch;flex-direction:column}.onboarding-actions{justify-content:flex-end}}
+</style>
 </head>
 <body>
 
@@ -501,6 +511,22 @@
       <button class="auth-btn" onclick="fazerCadastro()">Criar conta</button>
       <div id="cad-msg" class="auth-msg"></div>
     </div>
+  </div>
+</div>
+
+
+<!-- ONBOARDING / ROTINA -->
+<div id="onboarding-screen" class="onboarding-wrap">
+  <div class="onboarding-card">
+    <div class="onboarding-head">
+      <h2 id="onboarding-title">Monte sua rotina</h2>
+      <p id="onboarding-sub">O conteúdo do BNB é o mesmo para todos. Aqui você define apenas quanto tempo a sua trilha pode usar em cada dia.</p>
+    </div>
+    <div class="form-group"><label class="form-label">Concurso-alvo</label><select class="form-input" id="onb-concurso" disabled><option>BNB — Analista Bancário 1</option></select></div>
+    <div class="form-group"><label class="form-label">Seu nível atual</label><select class="form-input" id="onb-nivel"><option value="comecando">Começando agora</option><option value="ja_estudo">Já estudo para concursos</option><option value="avancado">Avançado</option></select></div>
+    <div class="preset-row"><button class="preset-btn" onclick="aplicarPresetRotina('leve')">Leve</button><button class="preset-btn" onclick="aplicarPresetRotina('regular')">Regular</button><button class="preset-btn" onclick="aplicarPresetRotina('intensivo')">Intensivo</button><button class="preset-btn" onclick="aplicarPresetRotina('personalizado')">Personalizado</button></div>
+    <div class="routine-grid" id="onb-routine-grid"></div>
+    <div class="onboarding-footer"><div id="onboarding-msg" class="onboarding-msg"></div><div class="onboarding-actions"><button id="onboarding-cancel" class="btn" style="display:none" onclick="fecharOnboarding()">Cancelar</button><button class="btn btn-primary" onclick="salvarOnboarding()">Salvar e continuar</button></div></div>
   </div>
 </div>
 
@@ -956,6 +982,7 @@
             </select>
           </div>
           <div class="settings-row"><div><div class="settings-label">Plano semanal</div><div class="settings-sub">O plano agora é editado na aba “Plano semanal”.</div></div><button class="btn btn-sm" onclick="goTo('cronograma',[...document.querySelectorAll('.nav-item')].find(n=>n.textContent.includes('Plano semanal')))">Abrir plano</button></div>
+          <div class="settings-row"><div><div class="settings-label">Minha rotina</div><div class="settings-sub" id="cfg-rotina-resumo">Dias e tempo disponíveis por semana</div></div><button class="btn btn-sm" onclick="abrirOnboarding(true)">Editar rotina</button></div>
         </div>
       </div>
 
@@ -987,6 +1014,11 @@
   // ─── STATE ────────────────────────────────────────────────
   let currentUser  = null;
   let sessaoAtual  = null;
+  let perfilAtual = null;
+  let disponibilidadeAtual = [];
+  let concursoBNBId = null;
+  let onboardingEdicao = false;
+  const SESSION_KEY = 'md_trilha_supabase_session';
   let userMeta     = {
     metaSec: 3600,
     cronograma: { Segunda:'Conhecimentos Bancários', Terça:'Vendas e Negociação', Quarta:'Informática', Quinta:'Português', Sexta:'Revisão e Questões', Sábado:'Livre', Domingo:'Livre' }
@@ -1032,6 +1064,138 @@
     return data;
   }
 
+  function salvarSessaoAuth(data) {
+    if (!data?.access_token || !data?.user) return;
+    const exp = data.expires_at || Math.floor(Date.now()/1000) + (Number(data.expires_in)||3600);
+    currentUser = {...data, expires_at: exp};
+    localStorage.setItem(SESSION_KEY, JSON.stringify(currentUser));
+  }
+
+  function limparSessaoAuth() {
+    localStorage.removeItem(SESSION_KEY);
+    currentUser = null;
+  }
+
+  async function restaurarSessaoAuth() {
+    let saved = null;
+    try { saved = JSON.parse(localStorage.getItem(SESSION_KEY) || 'null'); } catch(e) {}
+    if (!saved?.refresh_token || !saved?.user) return false;
+    const aindaValida = saved.access_token && Number(saved.expires_at||0) > Math.floor(Date.now()/1000) + 60;
+    if (aindaValida) { currentUser = saved; return true; }
+    try {
+      const renovada = await supaAuth('/token?grant_type=refresh_token', { refresh_token: saved.refresh_token });
+      salvarSessaoAuth(renovada);
+      return true;
+    } catch(e) { limparSessaoAuth(); return false; }
+  }
+
+  async function carregarBaseBNB() {
+    if (concursoBNBId) return concursoBNBId;
+    const rows = await supa('/rest/v1/concursos?select=id,nome&slug=eq.bnb&limit=1');
+    concursoBNBId = rows?.[0]?.id || null;
+    return concursoBNBId;
+  }
+
+  async function carregarPerfilRemoto() {
+    await carregarBaseBNB();
+    const uid = currentUser?.user?.id;
+    if (!uid) return null;
+    const [perfis, disp] = await Promise.all([
+      supa(`/rest/v1/perfis?select=*&user_id=eq.${uid}&limit=1`),
+      supa(`/rest/v1/disponibilidade_usuario?select=*&user_id=eq.${uid}&order=dia_semana.asc`)
+    ]);
+    perfilAtual = perfis?.[0] || null;
+    disponibilidadeAtual = disp || [];
+    aplicarDisponibilidadeAoMeta();
+    return perfilAtual;
+  }
+
+  function aplicarDisponibilidadeAoMeta() {
+    if (!disponibilidadeAtual.length) return;
+    const jsHoje = new Date().getDay();
+    const hoje = disponibilidadeAtual.find(d => Number(d.dia_semana) === jsHoje && d.disponivel);
+    const primeira = disponibilidadeAtual.find(d => d.disponivel && Number(d.minutos_disponiveis)>0);
+    const min = Number(hoje?.minutos_disponiveis || primeira?.minutos_disponiveis || 60);
+    userMeta.metaSec = Math.max(1,min) * 60;
+  }
+
+  function montarRotinaUI() {
+    const grid = document.getElementById('onb-routine-grid');
+    if (!grid || grid.children.length) return;
+    const dias = [
+      ['Segunda',1],['Terça',2],['Quarta',3],['Quinta',4],['Sexta',5],['Sábado',6],['Domingo',0]
+    ];
+    grid.innerHTML = dias.map(([nome,n]) => `<div class="routine-row"><strong>${nome}</strong><input id="onb-dia-${n}" type="checkbox" onchange="atualizarSelectRotina(${n})"><select id="onb-min-${n}"><option value="30">30 min</option><option value="60" selected>1h</option><option value="90">1h30</option><option value="120">2h</option><option value="150">2h30</option><option value="180">3h</option></select></div>`).join('');
+  }
+
+  function atualizarSelectRotina(n) {
+    const c = document.getElementById('onb-dia-'+n), sel = document.getElementById('onb-min-'+n);
+    if (sel) sel.disabled = !c?.checked;
+  }
+
+  function aplicarPresetRotina(tipo) {
+    montarRotinaUI();
+    const conf = tipo==='intensivo' ? {min:120, sab:true, dom:true} : tipo==='regular' ? {min:90, sab:true, dom:false} : tipo==='leve' ? {min:60, sab:false, dom:false} : null;
+    [1,2,3,4,5,6,0].forEach(n => {
+      const c=document.getElementById('onb-dia-'+n), sel=document.getElementById('onb-min-'+n);
+      if (!c||!sel) return;
+      if (!conf) { atualizarSelectRotina(n); return; }
+      c.checked = n>=1&&n<=5 ? true : n===6 ? conf.sab : conf.dom;
+      sel.value=String(conf.min); atualizarSelectRotina(n);
+    });
+  }
+
+  function preencherOnboardingComDados() {
+    montarRotinaUI();
+    document.getElementById('onb-nivel').value = perfilAtual?.nivel_estudo || 'comecando';
+    if (!disponibilidadeAtual.length) { aplicarPresetRotina('leve'); return; }
+    [1,2,3,4,5,6,0].forEach(n => {
+      const row = disponibilidadeAtual.find(d=>Number(d.dia_semana)===n);
+      const c=document.getElementById('onb-dia-'+n), sel=document.getElementById('onb-min-'+n);
+      c.checked = !!row?.disponivel;
+      sel.value = String(row?.minutos_disponiveis || 60);
+      atualizarSelectRotina(n);
+    });
+  }
+
+  function abrirOnboarding(edicao=false) {
+    onboardingEdicao = !!edicao;
+    preencherOnboardingComDados();
+    document.getElementById('onboarding-title').textContent = edicao ? 'Minha rotina' : 'Monte sua rotina';
+    document.getElementById('onboarding-sub').textContent = edicao ? 'A mudança reorganiza o futuro da trilha, sem apagar seu histórico.' : 'O conteúdo do BNB é o mesmo para todos. Aqui você define apenas quanto tempo a sua trilha pode usar em cada dia.';
+    document.getElementById('onboarding-cancel').style.display = edicao ? 'inline-flex' : 'none';
+    document.getElementById('main-app').style.display = 'none';
+    document.getElementById('auth-screen').style.display = 'none';
+    document.getElementById('onboarding-screen').style.display = 'flex';
+  }
+
+  function fecharOnboarding() {
+    document.getElementById('onboarding-screen').style.display='none';
+    document.getElementById('main-app').style.display='flex';
+  }
+
+  async function salvarOnboarding() {
+    const msg=document.getElementById('onboarding-msg'); msg.textContent='';
+    try {
+      const uid=currentUser.user.id; await carregarBaseBNB();
+      const nome=currentUser.user?.user_metadata?.nome || perfilAtual?.nome || currentUser.user.email?.split('@')[0] || '';
+      const nivel=document.getElementById('onb-nivel').value;
+      const perfilPayload={user_id:uid,nome,concurso_alvo_id:concursoBNBId,nivel_estudo:nivel,perfil_rotina:'personalizado',onboarding_concluido:true};
+      await supa('/rest/v1/perfis?on_conflict=user_id',{method:'POST',headers:{'Prefer':'resolution=merge-duplicates,return=representation'},body:JSON.stringify(perfilPayload)});
+      const rows=[1,2,3,4,5,6,0].map(n=>({user_id:uid,dia_semana:n,disponivel:document.getElementById('onb-dia-'+n).checked,minutos_disponiveis:Number(document.getElementById('onb-min-'+n).value)||60}));
+      await supa('/rest/v1/disponibilidade_usuario?on_conflict=user_id,dia_semana',{method:'POST',headers:{'Prefer':'resolution=merge-duplicates,return=representation'},body:JSON.stringify(rows)});
+      await carregarPerfilRemoto();
+      document.getElementById('onboarding-screen').style.display='none';
+      await entrarNoApp(currentUser.user.email);
+    } catch(e) { console.error(e); msg.textContent='Não foi possível salvar sua rotina: '+e.message; }
+  }
+
+  async function prepararEntradaApp() {
+    await carregarPerfilRemoto();
+    if (!perfilAtual?.onboarding_concluido) { abrirOnboarding(false); return; }
+    await entrarNoApp(currentUser.user?.email || '');
+  }
+
   // ─── AUTH ─────────────────────────────────────────────────
   function switchTab(tab) {
     document.getElementById('tab-login').classList.toggle('active', tab === 'login');
@@ -1047,8 +1211,8 @@
     msg.className = 'auth-msg'; msg.style.display = 'none';
     try {
       const data = await supaAuth('/token?grant_type=password', { email, password: senha });
-      currentUser = data;
-      entrarNoApp(data.user?.email || email);
+      salvarSessaoAuth(data);
+      await prepararEntradaApp();
     } catch(e) { msg.textContent = 'Email ou senha incorretos.'; msg.className = 'auth-msg erro'; }
   }
 
@@ -1065,18 +1229,23 @@
     } catch(e) { msg.textContent = e.message; msg.className = 'auth-msg erro'; }
   }
 
-  function fazerLogout() {
-    currentUser = null; sessaoAtual = null;
-    document.getElementById('main-app').style.display   = 'none';
-    document.getElementById('auth-screen').style.display = 'flex';
+  async function fazerLogout() {
+    try { if (currentUser?.access_token) await fetch(SUPA_URL + '/auth/v1/logout', {method:'POST',headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+currentUser.access_token}}); } catch(e) {}
+    limparSessaoAuth(); sessaoAtual = null; perfilAtual=null; disponibilidadeAtual=[];
+    document.getElementById('main-app').style.display='none';
+    document.getElementById('onboarding-screen').style.display='none';
+    document.getElementById('auth-screen').style.display='flex';
   }
 
-  function entrarNoApp(email) {
-    document.getElementById('auth-screen').style.display = 'none';
-    document.getElementById('main-app').style.display   = 'flex';
-    document.getElementById('sidebar-user').textContent = email;
+  async function entrarNoApp(email) {
+    document.getElementById('auth-screen').style.display='none';
+    document.getElementById('onboarding-screen').style.display='none';
+    document.getElementById('main-app').style.display='flex';
+    document.getElementById('sidebar-user').textContent = perfilAtual?.nome || email;
     buildDisciplinas();
     carregarConfig();
+    aplicarDisponibilidadeAoMeta();
+    renderConfig();
     renderDashboard();
   }
 
@@ -1118,6 +1287,7 @@
       ...q,
       oficial: oficialDetectada,
       id: q.codigo || q.questao_id || q.id || null,
+      dbId: q.dbId || (typeof q.id === 'number' ? q.id : null),
       disciplina: q.disciplina || q.disciplina_sugerida || 'Conhecimentos Bancários',
       assunto: q.assunto || q.subassunto || 'Não classificado',
       subassunto: q.subassunto || '',
@@ -1153,6 +1323,9 @@
       respondido_em: new Date().toISOString()
     });
     localStorage.setItem(respostaStorageKey(), JSON.stringify(rows.slice(-5000)));
+    if (currentUser?.user?.id && item.dbId) {
+      carregarBaseBNB().then(()=>supa('/rest/v1/respostas_questoes',{method:'POST',body:JSON.stringify({user_id:currentUser.user.id,questao_id:item.dbId,concurso_id:concursoBNBId,resposta_marcada:String(escolha),correta:!!acertou,modo:contexto==='revisao'?'revisao':'pratica'})})).catch(e=>console.warn('Resposta remota não salva:',e));
+    }
   }
 
   function metaQuestaoHtml(q) {
@@ -1199,34 +1372,9 @@
     return Object.values(mapa);
   }
 
-  async function salvarResultadosPorAssunto(respostas) {
-    if (!currentUser?.user?.id || !respostas.length) return;
-    const payload = agruparRespostasPorAssunto(respostas).map(r => ({
-      user_id: currentUser.user.id,
-      disciplina: r.disciplina,
-      assunto: r.assunto,
-      total: r.total,
-      acertos: r.acertos,
-      erros: r.erros
-    }));
-    if (payload.length) await supa('/rest/v1/questoes_resultado', { method:'POST', body:JSON.stringify(payload) });
-  }
+  async function salvarResultadosPorAssunto(respostas) { return; }
 
   async function carregarPerformanceAssuntos(disciplina) {
-    try {
-      const rows = await supa(`/rest/v1/questoes_resultado?select=assunto,total,acertos&disciplina=eq.${encodeURIComponent(disciplina)}&assunto=not.is.null`, {headers:{'Range':'0-4999'}});
-      if (rows && rows.length) {
-        const mapa = {};
-        rows.forEach(r => {
-          const assunto = r.assunto || 'Não classificado';
-          if(!mapa[assunto]) mapa[assunto]={total:0,acertos:0};
-          mapa[assunto].total += Number(r.total)||0;
-          mapa[assunto].acertos += Number(r.acertos)||0;
-        });
-        return { fonte:'nuvem', rows:Object.entries(mapa).map(([assunto,d])=>({assunto,...d,pct:d.total?Math.round(d.acertos/d.total*100):0})) };
-      }
-    } catch(e) { console.warn('Histórico detalhado remoto indisponível; usando dados locais.', e); }
-
     const mapa = {};
     carregarRespostasLocais().filter(r=>r.disciplina===disciplina).forEach(r=>{
       const assunto=r.assunto||'Não classificado';
@@ -1236,21 +1384,6 @@
     return { fonte:'local', rows:Object.entries(mapa).map(([assunto,d])=>({assunto,...d,pct:d.total?Math.round(d.acertos/d.total*100):0})) };
   }
 
-  function renderResumoSessao(containerId, respostas) {
-    const el = document.getElementById(containerId);
-    if (!el) return;
-    const mapa = {};
-    respostas.forEach(r => {
-      const a = r.assunto || 'Não classificado';
-      if (!mapa[a]) mapa[a] = {total:0, acertos:0};
-      mapa[a].total++; if (r.acertou) mapa[a].acertos++;
-    });
-    const rows = Object.entries(mapa).map(([assunto,d]) => ({assunto,...d,pct:Math.round(d.acertos/d.total*100)})).sort((a,b)=>a.pct-b.pct || b.total-a.total);
-    el.innerHTML = `<div class="card-title">Resultado por assunto</div>` + (rows.length ? `<div class="session-breakdown">${rows.map(r=>`<div class="session-topic"><span>${escapeHtml(r.assunto)}</span><div class="bar-track"><div class="bar-fill" style="width:${r.pct}%;background:${r.pct>=70?'var(--fill-success)':r.pct>=50?'var(--fill-warning)':'var(--fill-danger)'}"></div></div><strong>${r.pct}%</strong></div>`).join('')}</div>` : '<div class="empty" style="padding:10px">Sem dados por assunto.</div>');
-  }
-
-
-  // ─── DISCIPLINAS ──────────────────────────────────────────
   function buildDisciplinas() {
     ['timer','questoes'].forEach(ctx => {
       const c = document.getElementById('disciplinas-' + ctx);
@@ -1321,6 +1454,57 @@
     return nomes[plano.atividade] || 'Estudo';
   }
 
+  function normalizarSessaoRemota(s) {
+    const e=s?.estado||{};
+    return {
+      id:s.id,
+      disciplina:e.disciplina||'Conhecimentos Bancários',
+      assunto:e.assunto||'',
+      tempo_segundos:(Number(s.duracao_real_minutos)||0)*60,
+      streak:Number(e.streak)||0,
+      criado_em:s.criado_em||s.iniciado_em,
+      status:s.status
+    };
+  }
+
+  async function carregarSessoesCompat(inicio=null, fim=null, limite=null) {
+    let path='/rest/v1/sessoes_estudo?select=id,estado,duracao_real_minutos,status,iniciado_em,criado_em';
+    if(inicio) path += `&criado_em=gte.${inicio}T00:00:00`;
+    if(fim) path += `&criado_em=lt.${fim}T00:00:00`;
+    path += '&order=criado_em.desc';
+    if(limite) path += `&limit=${limite}`;
+    const rows=await supa(path);
+    return (rows||[]).map(normalizarSessaoRemota);
+  }
+
+  function agregarRespostasDetalhadas(rows) {
+    const mapa={};
+    (rows||[]).forEach(r=>{
+      const disciplina=r.disciplina||'Conhecimentos Bancários', assunto=r.assunto||'Não classificado';
+      const data=r.respondido_em||r.criado_em||new Date().toISOString();
+      const chave=data.slice(0,10)+'||'+disciplina+'||'+assunto;
+      if(!mapa[chave]) mapa[chave]={disciplina,assunto,total:0,acertos:0,erros:0,criado_em:data};
+      mapa[chave].total++; if(r.acertou) mapa[chave].acertos++; else mapa[chave].erros++;
+    });
+    return Object.values(mapa);
+  }
+
+  async function carregarResultadosCompat(inicio=null, fim=null) {
+    try {
+      let path='/rest/v1/respostas_questoes?select=correta,respondida_em,banco_questoes(disciplina,assunto)';
+      if(inicio) path += `&respondida_em=gte.${inicio}T00:00:00`;
+      if(fim) path += `&respondida_em=lt.${fim}T00:00:00`;
+      path += '&order=respondida_em.desc';
+      const rr=await supa(path,{headers:{'Range':'0-4999'}});
+      const det=(rr||[]).map(r=>({disciplina:r.banco_questoes?.disciplina,assunto:r.banco_questoes?.assunto,acertou:!!r.correta,respondido_em:r.respondida_em}));
+      if(det.length) return agregarRespostasDetalhadas(det);
+    } catch(e) { console.warn('Resultados remotos indisponíveis; usando cache local.',e); }
+    let det=carregarRespostasLocais();
+    if(inicio) det=det.filter(r=>String(r.respondido_em||'')>=inicio+'T00:00:00');
+    if(fim) det=det.filter(r=>String(r.respondido_em||'')<fim+'T00:00:00');
+    return agregarRespostasDetalhadas(det);
+  }
+
   function sessaoCombinaPlano(sessao, plano) {
     if (!sessao || !plano || plano.disciplina === 'Livre') return false;
     if (sessao.disciplina !== plano.disciplina) return false;
@@ -1371,66 +1555,39 @@
   async function renderDashboard() {
     document.getElementById('streak-num').textContent = '...';
     try {
-      const hojeDate = new Date();
-      const hoje = dataLocalKey(hojeDate);
-      const semIni = dataLocalKey(inicioSemanaLocal(hojeDate));
-      const [sesHoje, sesSem, qTodos, qSem] = await Promise.all([
-        supa(`/rest/v1/sessoes_estudo?select=tempo_segundos,streak,disciplina,assunto,criado_em&criado_em=gte.${hoje}T00:00:00&order=criado_em.desc`),
-        supa(`/rest/v1/sessoes_estudo?select=tempo_segundos,disciplina,assunto,criado_em&criado_em=gte.${semIni}T00:00:00`),
-        supa(`/rest/v1/questoes_resultado?select=disciplina,assunto,total,acertos,erros,criado_em`),
-        supa(`/rest/v1/questoes_resultado?select=disciplina,assunto,total,acertos,erros,criado_em&criado_em=gte.${semIni}T00:00:00`)
+      const hojeDate=new Date(), hoje=dataLocalKey(hojeDate), semIni=dataLocalKey(inicioSemanaLocal(hojeDate));
+      const amanha=new Date(hojeDate); amanha.setDate(amanha.getDate()+1);
+      const [sesHoje,sesSem,qTodos,qSem]=await Promise.all([
+        carregarSessoesCompat(hoje,dataLocalKey(amanha)),
+        carregarSessoesCompat(semIni),
+        carregarResultadosCompat(),
+        carregarResultadosCompat(semIni)
       ]);
-      const tempoHoje = (sesHoje||[]).reduce((a,s)=>a+(Number(s.tempo_segundos)||0), 0);
-      const tempoSem  = (sesSem||[]).reduce((a,s)=>a+(Number(s.tempo_segundos)||0), 0);
-      const streak    = sesHoje?.[0]?.streak || 0;
-      const totQ = (qTodos||[]).reduce((a,q)=>a+(Number(q.total)||0), 0);
-      const totA = (qTodos||[]).reduce((a,q)=>a+(Number(q.acertos)||0), 0);
-      const pct  = totQ > 0 ? Math.round(totA/totQ*100) : null;
-      const resumoPlano = obterResumoPlano(sesSem||[], qSem||[]);
-      const planoHoje = planoParaData(hojeDate);
-
-      document.getElementById('streak-num').textContent = streak;
-      document.getElementById('m-hoje').textContent = fmtTime(tempoHoje);
-      document.getElementById('m-consistencia').textContent = resumoPlano.pct + '%';
-      document.getElementById('m-semana-sub').textContent = `${resumoPlano.concluidas} de ${resumoPlano.planejadas} atividades · ${fmtTime(tempoSem)}`;
-      document.getElementById('m-questoes').textContent = totQ;
-      document.getElementById('m-acertos-sub').textContent = totA + ' acertos';
-      document.getElementById('m-desempenho').textContent = pct !== null ? pct + '%' : '—';
-      const metaMin = Math.round(userMeta.metaSec/60);
-      document.getElementById('m-meta-label').textContent = 'Meta: ' + (metaMin>=60 ? Math.floor(metaMin/60)+'h'+(metaMin%60?String(metaMin%60).padStart(2,'0')+'min':'') : metaMin+'min');
-
-      const hora = hojeDate.getHours();
-      const saudacao = hora < 12 ? 'Bom dia' : hora < 18 ? 'Boa tarde' : 'Boa noite';
-      const nome = currentUser?.user?.user_metadata?.nome || currentUser?.user?.email?.split('@')[0] || '';
-      document.getElementById('hero-greeting').textContent = `${saudacao}${nome ? ', ' + nome : ''}.`;
-      document.getElementById('hero-plan').textContent = planoHoje.disciplina === 'Livre'
-        ? 'Hoje está marcado como descanso. Você pode manter a pausa ou fazer uma prática rápida.'
-        : `${planoHoje.disciplina}${planoHoje.assunto ? ' · ' + planoHoje.assunto : ''} — ${formatarAtividade(planoHoje)}, meta de ${planoHoje.atividade==='estudo' ? planoHoje.duracao+' min' : planoHoje.questoes+' questões'}.`;
-
-      const porDisc = {};
-      (qTodos||[]).forEach(q => { if(!porDisc[q.disciplina]) porDisc[q.disciplina]={total:0,acertos:0}; porDisc[q.disciplina].total+=Number(q.total)||0; porDisc[q.disciplina].acertos+=Number(q.acertos)||0; });
-      const mats = Object.entries(porDisc).sort((a,b)=>(b[1].acertos/b[1].total)-(a[1].acertos/a[1].total));
-      document.getElementById('materias-bars').innerHTML = mats.length === 0
-        ? '<div class="empty" style="padding:20px 0">Nenhuma questão ainda.</div>'
-        : mats.map(([mat,d]) => { const p=Math.round(d.acertos/d.total*100); const clr=p>=70?'var(--fill-success)':p>=50?'var(--fill-warning)':'var(--fill-danger)'; return `<div class="materia-bar"><div class="materia-name">${escapeHtml(mat)}</div><div class="bar-track"><div class="bar-fill" style="width:${p}%;background:${clr}"></div></div><div class="bar-pct" style="color:${clr}">${p}%</div></div>`; }).join('');
-
-      document.getElementById('proxima-materia').innerHTML = planoHoje.disciplina === 'Livre'
-        ? `<div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px">Hoje</div><div style="font-size:17px;font-weight:700;color:var(--navy)">Descanso planejado</div>`
-        : `<div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px">Hoje</div><div style="font-size:17px;font-weight:700;color:var(--navy)">${escapeHtml(planoHoje.disciplina)}</div><div style="font-size:12px;color:var(--text-muted);margin-top:4px">${escapeHtml(planoHoje.assunto || formatarAtividade(planoHoje))}</div>`;
-
-      const aiMsgs = [];
-      if (totQ===0 && tempoSem===0) aiMsgs.push('Comece sua primeira atividade para construir um diagnóstico personalizado.');
-      if (resumoPlano.pendentes>0) aiMsgs.push(`Você tem <strong>${resumoPlano.pendentes} atividade${resumoPlano.pendentes>1?'s':''} pendente${resumoPlano.pendentes>1?'s':''}</strong> nesta semana. Abra o Plano semanal para decidir como recuperar.`);
-      if (pct!==null && pct>=75) aiMsgs.push(`Seu desempenho geral está em <strong>${pct}%</strong>. Mantenha o ritmo e aumente gradualmente a dificuldade.`);
-      if (pct!==null && pct<55) aiMsgs.push(`Seu desempenho geral está em <strong>${pct}%</strong>. Priorize revisão e questões dos assuntos mais fracos.`);
-      if (mats.length>0) { const fraca=mats[mats.length-1]; const fp=Math.round(fraca[1].acertos/fraca[1].total*100); if(fp<65) aiMsgs.push(`A disciplina com maior necessidade agora é <strong>${fraca[0]}</strong> (${fp}%).`); }
-      const detalhadas = carregarRespostasLocais();
-      const porAssunto = {};
-      detalhadas.forEach(r => { const a=r.assunto||'Não classificado'; if(!porAssunto[a])porAssunto[a]={total:0,acertos:0}; porAssunto[a].total++; if(r.acertou)porAssunto[a].acertos++; });
-      const fracos = Object.entries(porAssunto).filter(([,d])=>d.total>=3).map(([a,d])=>({a,p:Math.round(d.acertos/d.total*100),t:d.total})).sort((x,y)=>x.p-y.p || y.t-x.t);
-      if(fracos.length && fracos[0].p<70) aiMsgs.push(`Seu ponto de atenção mais claro é <strong>${fracos[0].a}</strong> (${fracos[0].p}% em ${fracos[0].t} respostas).`);
-      document.getElementById('ai-msgs').innerHTML = (aiMsgs.length?aiMsgs:['Sua trilha está em dia. Continue avançando uma etapa por vez.']).map(m=>`<div class="ai-msg">${m}</div>`).join('');
-    } catch(e) { console.error(e); }
+      const tempoHoje=(sesHoje||[]).reduce((a,x)=>a+(Number(x.tempo_segundos)||0),0);
+      const tempoSem=(sesSem||[]).reduce((a,x)=>a+(Number(x.tempo_segundos)||0),0);
+      const streak=await calcularStreak();
+      const totQ=(qTodos||[]).reduce((a,q)=>a+(Number(q.total)||0),0), totA=(qTodos||[]).reduce((a,q)=>a+(Number(q.acertos)||0),0);
+      const pct=totQ?Math.round(totA/totQ*100):null, resumoPlano=obterResumoPlano(sesSem||[],qSem||[]), planoHoje=planoParaData(hojeDate);
+      document.getElementById('streak-num').textContent=streak;
+      document.getElementById('m-hoje').textContent=fmtTime(tempoHoje);
+      document.getElementById('m-consistencia').textContent=resumoPlano.pct+'%';
+      document.getElementById('m-semana-sub').textContent=`${resumoPlano.concluidas} de ${resumoPlano.planejadas} atividades · ${fmtTime(tempoSem)}`;
+      document.getElementById('m-questoes').textContent=totQ;
+      document.getElementById('m-acertos-sub').textContent=totA+' acertos';
+      document.getElementById('m-desempenho').textContent=pct!==null?pct+'%':'—';
+      const metaMin=Math.round(userMeta.metaSec/60);
+      document.getElementById('m-meta-label').textContent='Meta: '+(metaMin>=60?Math.floor(metaMin/60)+'h'+(metaMin%60?String(metaMin%60).padStart(2,'0')+'min':''):metaMin+'min');
+      const hora=hojeDate.getHours(), saudacao=hora<12?'Bom dia':hora<18?'Boa tarde':'Boa noite';
+      const nome=perfilAtual?.nome||currentUser?.user?.user_metadata?.nome||currentUser?.user?.email?.split('@')[0]||'';
+      document.getElementById('hero-greeting').textContent=`${saudacao}${nome?', '+nome:''}.`;
+      document.getElementById('hero-plan').textContent=planoHoje.disciplina==='Livre'?'Hoje está marcado como descanso. Você pode manter a pausa ou fazer uma prática rápida.':`${planoHoje.disciplina}${planoHoje.assunto?' · '+planoHoje.assunto:''} — ${formatarAtividade(planoHoje)}, meta de ${planoHoje.atividade==='estudo'?planoHoje.duracao+' min':planoHoje.questoes+' questões'}.`;
+      const porDisc={}; (qTodos||[]).forEach(q=>{if(!porDisc[q.disciplina])porDisc[q.disciplina]={total:0,acertos:0};porDisc[q.disciplina].total+=Number(q.total)||0;porDisc[q.disciplina].acertos+=Number(q.acertos)||0;});
+      const mats=Object.entries(porDisc).sort((a,b)=>(b[1].acertos/b[1].total)-(a[1].acertos/a[1].total));
+      document.getElementById('materias-bars').innerHTML=mats.length===0?'<div class="empty" style="padding:20px 0">Nenhuma questão ainda.</div>':mats.map(([mat,d])=>{const p=Math.round(d.acertos/d.total*100),clr=p>=70?'var(--fill-success)':p>=50?'var(--fill-warning)':'var(--fill-danger)';return `<div class="materia-bar"><div class="materia-name">${escapeHtml(mat)}</div><div class="bar-track"><div class="bar-fill" style="width:${p}%;background:${clr}"></div></div><div class="bar-pct" style="color:${clr}">${p}%</div></div>`;}).join('');
+      document.getElementById('proxima-materia').innerHTML=planoHoje.disciplina==='Livre'?`<div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px">Hoje</div><div style="font-size:17px;font-weight:700;color:var(--navy)">Descanso planejado</div>`:`<div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px">Hoje</div><div style="font-size:17px;font-weight:700;color:var(--navy)">${escapeHtml(planoHoje.disciplina)}</div><div style="font-size:12px;color:var(--text-muted);margin-top:4px">${escapeHtml(planoHoje.assunto||formatarAtividade(planoHoje))}</div>`;
+      const aiMsgs=[]; if(totQ===0&&tempoSem===0)aiMsgs.push('Comece sua primeira atividade para construir um diagnóstico personalizado.'); if(resumoPlano.pendentes>0)aiMsgs.push(`Você tem <strong>${resumoPlano.pendentes} atividade${resumoPlano.pendentes>1?'s':''} pendente${resumoPlano.pendentes>1?'s':''}</strong> nesta semana.`); if(pct!==null&&pct>=75)aiMsgs.push(`Seu desempenho geral está em <strong>${pct}%</strong>. Mantenha o ritmo.`); if(pct!==null&&pct<55)aiMsgs.push(`Seu desempenho geral está em <strong>${pct}%</strong>. Priorize revisão e questões dos assuntos mais fracos.`);
+      document.getElementById('ai-msgs').innerHTML=(aiMsgs.length?aiMsgs:['Sua trilha está em dia. Continue avançando uma etapa por vez.']).map(m=>`<div class="ai-msg">${m}</div>`).join('');
+    } catch(e) { console.error('Dashboard:',e); document.getElementById('streak-num').textContent='0'; }
   }
 
   // ─── CONTEÚDO EXTRA ───────────────────────────────────────
@@ -1585,7 +1742,7 @@
   async function confirmarFinalizar() {
     const streak = await calcularStreak();
     const conteudoFinal = await coletarConteudoFinal();
-    try { await supa('/rest/v1/sessoes_estudo', { method:'POST', body: JSON.stringify({ user_id: currentUser.user.id, disciplina: timerMat, assunto: timerAssunto||null, tempo_segundos: timerSec, streak }) }); }
+    try { await carregarBaseBNB(); await supa('/rest/v1/sessoes_estudo', { method:'POST', body: JSON.stringify({ user_id: currentUser.user.id, concurso_id: concursoBNBId, tipo_atividade:'teoria', status:'concluida', finalizado_em:new Date().toISOString(), duracao_real_minutos:Math.max(1,Math.round(timerSec/60)), estado:{disciplina:timerMat,assunto:timerAssunto||null,streak} }) }); }
     catch(e) { console.error('Erro ao salvar sessão:', e); }
     sessaoAtual = { materia: timerMat, assunto: timerAssunto, conteudoExtra: conteudoFinal };
     if (timerPlanoDataKey) { userMeta.statusPlano = userMeta.statusPlano || {}; userMeta.statusPlano[timerPlanoDataKey] = 'recuperada'; salvarUserMeta(); }
@@ -1605,16 +1762,15 @@
 
   async function calcularStreak() {
     try {
-      const ontem = new Date(); ontem.setDate(ontem.getDate()-1);
-      const ontemStr = ontem.toISOString().slice(0,10);
-      const res = await supa(`/rest/v1/sessoes_estudo?select=streak,criado_em&order=criado_em.desc&limit=1`);
-      const ultima = res?.[0];
-      if (!ultima) return 1;
-      const dataUltima = ultima.criado_em.slice(0,10);
-      if (dataUltima === ontemStr) return (ultima.streak||0)+1;
-      if (dataUltima === new Date().toISOString().slice(0,10)) return ultima.streak||1;
-      return 1;
-    } catch(e) { return 1; }
+      const rows=await supa('/rest/v1/sessoes_estudo?select=estado,criado_em&status=eq.concluida&order=criado_em.desc&limit=60');
+      if(!rows?.length) return 1;
+      const dias=[...new Set(rows.map(r=>String(r.criado_em).slice(0,10)))];
+      let streak=0, d=new Date();
+      const hoje=dataLocalKey(d);
+      if(!dias.includes(hoje)){ d.setDate(d.getDate()-1); }
+      while(dias.includes(dataLocalKey(d))){ streak++; d.setDate(d.getDate()-1); }
+      return Math.max(streak,1);
+    } catch(e){ return 1; }
   }
 
   // ─── QUESTÕES ─────────────────────────────────────────────
@@ -1930,7 +2086,7 @@
   async function carregarPreviewRevisao() {
     try {
       const ini = getPeriodoInicio();
-      const sessoes = await supa(`/rest/v1/sessoes_estudo?select=disciplina,assunto&criado_em=gte.${ini}T00:00:00&order=criado_em.desc`);
+      const sessoes = await carregarSessoesCompat(ini);
       const preview = document.getElementById('rev-preview');
       if (!sessoes || sessoes.length===0) { preview.style.display='none'; return; }
       const contagem = {};
@@ -1948,10 +2104,7 @@
     errEl.style.display = 'none';
     try {
       const ini = getPeriodoInicio();
-      const [sessoes, qRes] = await Promise.all([
-        supa(`/rest/v1/sessoes_estudo?select=disciplina,assunto&criado_em=gte.${ini}T00:00:00`),
-        supa(`/rest/v1/questoes_resultado?select=disciplina,total,acertos&criado_em=gte.${ini}T00:00:00`)
-      ]);
+      const [sessoes, qRes] = await Promise.all([carregarSessoesCompat(ini), carregarResultadosCompat(ini)]);
       if (!sessoes || sessoes.length===0) { errEl.style.display='block'; errEl.textContent='Nenhum estudo registrado neste período ainda.'; return; }
 
       const nomesBanco   = DISCIPLINAS_BANCO.map(d=>d.nome);
@@ -2118,8 +2271,8 @@
     let sessoesSem = [], qSem = [];
     try {
       [sessoesSem,qSem] = await Promise.all([
-        supa(`/rest/v1/sessoes_estudo?select=disciplina,assunto,tempo_segundos,criado_em&criado_em=gte.${dataLocalKey(ini)}T00:00:00&criado_em=lt.${dataLocalKey(fim)}T00:00:00&order=criado_em.desc`),
-        supa(`/rest/v1/questoes_resultado?select=disciplina,assunto,total,acertos,erros,criado_em&criado_em=gte.${dataLocalKey(ini)}T00:00:00&criado_em=lt.${dataLocalKey(fim)}T00:00:00`)
+        carregarSessoesCompat(dataLocalKey(ini),dataLocalKey(fim)),
+        carregarResultadosCompat(dataLocalKey(ini),dataLocalKey(fim))
       ]);
     } catch(e) { console.error(e); }
     const resumo = obterResumoPlano(sessoesSem||[], qSem||[]);
@@ -2153,19 +2306,10 @@
   // ─── HISTÓRICO ────────────────────────────────────────────
   async function renderHistorico() {
     try {
-      const [rows, qRows] = await Promise.all([
-        supa('/rest/v1/sessoes_estudo?select=*&order=criado_em.desc&limit=30'),
-        supa('/rest/v1/questoes_resultado?select=*&order=criado_em.desc&limit=60')
-      ]);
-      if (!rows || rows.length===0) { document.getElementById('historico-list').innerHTML='<div class="empty">Nenhuma sessão ainda.</div>'; return; }
-      document.getElementById('historico-list').innerHTML = rows.map(s => {
-        const data  = new Date(s.criado_em).toLocaleDateString('pt-BR');
-        const tempo = fmtTime(s.tempo_segundos);
-        const qMatch = (qRows||[]).filter(q=>q.criado_em.slice(0,10)===s.criado_em.slice(0,10) && q.disciplina===s.disciplina);
-        const q = qMatch.length ? qMatch.reduce((acc,r)=>({acertos:acc.acertos+(Number(r.acertos)||0),erros:acc.erros+(Number(r.erros)||0)}),{acertos:0,erros:0}) : null;
-        return `<div class="hist-row"><div class="hist-data">${data}</div><div class="hist-mat"><div>${s.disciplina}</div>${s.assunto?`<div class="hist-assunto">${s.assunto}</div>`:''}</div><div class="hist-stats"><span>${tempo}</span>${q?`<span class="hist-acerto">✓${q.acertos}</span><span class="hist-erro">✗${q.erros}</span>`:''}</div></div>`;
-      }).join('');
-    } catch(e) { document.getElementById('historico-list').innerHTML='<div class="empty">Erro ao carregar histórico.</div>'; }
+      const [rows,qRows]=await Promise.all([carregarSessoesCompat(null,null,30),carregarResultadosCompat()]);
+      if(!rows?.length){document.getElementById('historico-list').innerHTML='<div class="empty">Nenhuma sessão ainda.</div>';return;}
+      document.getElementById('historico-list').innerHTML=rows.map(s=>{const data=new Date(s.criado_em).toLocaleDateString('pt-BR'),tempo=fmtTime(s.tempo_segundos);const qm=(qRows||[]).filter(q=>q.criado_em.slice(0,10)===s.criado_em.slice(0,10)&&q.disciplina===s.disciplina);const q=qm.length?qm.reduce((a,r)=>({acertos:a.acertos+(Number(r.acertos)||0),erros:a.erros+(Number(r.erros)||0)}),{acertos:0,erros:0}):null;return `<div class="hist-row"><div class="hist-data">${data}</div><div class="hist-mat"><div>${escapeHtml(s.disciplina)}</div>${s.assunto?`<div class="hist-assunto">${escapeHtml(s.assunto)}</div>`:''}</div><div class="hist-stats"><span>${tempo}</span>${q?`<span class="hist-acerto">✓${q.acertos}</span><span class="hist-erro">✗${q.erros}</span>`:''}</div></div>`;}).join('');
+    } catch(e){document.getElementById('historico-list').innerHTML='<div class="empty">Erro ao carregar histórico.</div>';}
   }
 
   // ─── CONFIG ───────────────────────────────────────────────
@@ -2179,6 +2323,8 @@
 
   function renderConfig() {
     document.getElementById('cfg-meta').value = userMeta.metaSec;
+    const r=document.getElementById('cfg-rotina-resumo');
+    if(r){ const ativos=disponibilidadeAtual.filter(d=>d.disponivel&&Number(d.minutos_disponiveis)>0); const total=ativos.reduce((a,d)=>a+Number(d.minutos_disponiveis||0),0); r.textContent=ativos.length?`${ativos.length} dias · ${Math.floor(total/60)}h${total%60?String(total%60).padStart(2,'0')+'min':''} por semana`:'Nenhum dia disponível configurado'; }
   }
 
   function salvarMeta() { userMeta.metaSec=parseInt(document.getElementById('cfg-meta').value); salvarUserMeta(); }
@@ -2199,6 +2345,14 @@
     document.getElementById('plan-editor').style.display='none';
     renderCronograma(); renderDashboard();
   }
+
+  document.addEventListener('DOMContentLoaded', async () => {
+    montarRotinaUI();
+    const ok = await restaurarSessaoAuth();
+    if (ok) {
+      try { await prepararEntradaApp(); } catch(e) { console.error('Falha ao restaurar sessão:',e); limparSessaoAuth(); document.getElementById('auth-screen').style.display='flex'; }
+    } else { document.getElementById('auth-screen').style.display='flex'; }
+  });
 
 </script>
 </body>
