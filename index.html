@@ -588,7 +588,7 @@
           <div id="m-semana" style="display:none"></div>
         </div>
         <div class="ai-box">
-          <div class="ai-header"><i class="ti ti-sparkles"></i> Análise</div>
+          <div class="ai-header"><i class="ti ti-route"></i> Orientação da trilha</div>
           <div id="ai-msgs"><div class="ai-msg">Carregando análise...</div></div>
         </div>
         <div class="cards-row">
@@ -605,11 +605,14 @@
             <button class="btn btn-sm" onclick="ocultarFocoEstudo()">Escolher outro assunto</button>
           </div>
           <div class="study-meta-row"><span><strong id="study-focus-time">—</strong> planejados</span><span><strong id="study-focus-qtd">—</strong> questões mapeadas</span><span id="study-focus-progress">Ainda sem histórico</span></div>
+          <div class="study-panel" style="margin-bottom:12px"><div class="study-panel-title"><i class="ti ti-target-arrow"></i> Por que estudar isto agora?</div><div class="study-panel-body" id="study-focus-why"><span class="study-empty">A trilha está calculando a prioridade deste bloco.</span></div></div>
           <div class="study-grid">
             <div class="study-panel"><div class="study-panel-title"><i class="ti ti-notebook"></i> Resumo essencial</div><div class="study-panel-body" id="study-focus-summary"><span class="study-empty">Conteúdo em preparação.</span></div></div>
-            <div class="study-panel"><div class="study-panel-title"><i class="ti ti-video"></i> Aula recomendada</div><div class="study-panel-body" id="study-focus-class"><span class="study-empty">Curadoria em preparação.</span></div></div>
+            <div class="study-panel"><div class="study-panel-title"><i class="ti ti-video"></i> Aulas selecionadas</div><div class="study-panel-body" id="study-focus-class"><span class="study-empty">Curadoria em preparação.</span></div></div>
           </div>
+          <div id="study-focus-attention-wrap" class="study-panel" style="display:none;margin-top:12px"><div class="study-panel-title"><i class="ti ti-alert-triangle"></i> Atenção para prova</div><div class="study-panel-body" id="study-focus-attention"></div></div>
           <div id="study-focus-update-wrap" class="study-panel" style="display:none;margin-top:12px"><div class="study-panel-title"><i class="ti ti-refresh"></i> Atualização importante</div><div class="study-panel-body" id="study-focus-update"></div></div>
+          <div id="study-focus-sources-wrap" class="study-panel" style="display:none;margin-top:12px"><div class="study-panel-title"><i class="ti ti-link"></i> Fontes oficiais</div><div class="study-panel-body" id="study-focus-sources"></div></div>
           <div class="study-actions"><button class="btn btn-primary" onclick="iniciarFocoEstudo()"><i class="ti ti-player-play"></i> Iniciar esta atividade</button><button class="btn" id="study-focus-practice" onclick="praticarFocoEstudo()"><i class="ti ti-list-check"></i> Praticar este assunto</button></div>
         </div>
         <div class="card" id="timer-manual-card" style="max-width:480px;margin:0 auto">
@@ -1006,8 +1009,8 @@
   };
 
   let timerInterval = null, timerSec = 0, timerPaused = false, timerMat = '', timerAssunto = '', timerMetaOverride = null, timerPlanoDataKey = null, timerAgendaId = null;
-  let conteudoExtra = { tipo: null, texto: null, base64: null, mimeType: null }; // conteúdo extra para IA
-  let qMat = '', qQtd = 10, qModo = 'rapida', qBancoFiltrado = [], questoesList = [], qAtual = 0, qAcertos = 0, qErros = 0, qRespondida = false, qSessaoRespostas = [];
+  let conteudoExtra = { tipo: null, texto: null, base64: null, mimeType: null }; // conteúdo extra legado
+  let qMat = '', qQtd = 10, qModo = 'rapida', qBancoFiltrado = [], questoesList = [], qAtual = 0, qAcertos = 0, qErros = 0, qRespondida = false, qSessaoRespostas = [], qAssuntoIdMapeado = null;
   let revPeriodo = 'semana', revQtd = 20, revList = [], revAtual = 0, revAcertos = 0, revErros = 0, revRespondida = false, revSessaoRespostas = [];
 
   // ─── SUPABASE ─────────────────────────────────────────────
@@ -1101,7 +1104,7 @@
     if (!concursoAtualId) { disciplinasRemotas=[]; trilhaAtual=[]; return; }
     const [disciplinas, trilha] = await Promise.all([
       supa('/rest/v1/disciplinas?select=id,slug,nome&ativo=eq.true&order=ordem.asc'),
-      supa(`/rest/v1/trilha_concurso?select=id,ordem,prioridade,carga_estimada_minutos,assunto_id,assuntos(id,nome,slug,disciplina_id,disciplinas(id,nome,slug))&concurso_id=eq.${concursoAtualId}&ativo=eq.true&order=ordem.asc`)
+      supa(`/rest/v1/trilha_concurso?select=id,ordem,prioridade,carga_estimada_minutos,observacao,assunto_id,assuntos(id,nome,slug,disciplina_id,disciplinas(id,nome,slug))&concurso_id=eq.${concursoAtualId}&ativo=eq.true&order=ordem.asc`)
     ]);
     disciplinasRemotas = disciplinas || [];
     trilhaAtual = (trilha || []).map(t => ({
@@ -1433,13 +1436,15 @@
       if(trilha){ const b=document.createElement('span'); b.className='study-badge hot'; b.textContent=`P${trilha.prioridade} · prioridade ${trilha.prioridade===1?'alta':'relevante'}`; badges.appendChild(b); }
       if(assuntoInfo?.conteudo_dinamico){ const b=document.createElement('span'); b.className='study-badge dynamic'; b.textContent='Conteúdo dinâmico'; badges.appendChild(b); }
 
-      let qtd=0, resumo=[], atualiz=[], aulas=[], progresso=[];
+      let qtd=0, resumo=[], atualiz=[], atencao=[], fontes=[], aulas=[], progresso=[];
       if(plano.assuntoId){
-        [qtd,resumo,atualiz,aulas,progresso]=await Promise.all([
+        [qtd,resumo,atualiz,atencao,fontes,aulas,progresso]=await Promise.all([
           supa(`/rest/v1/questoes_assuntos?select=questao_id&assunto_id=eq.${plano.assuntoId}`,{headers:{'Range':'0-999'}}).then(r=>(r||[]).length).catch(()=>0),
-          supa(`/rest/v1/conteudos_estudo?select=titulo,conteudo,fonte_nome,fonte_url,revisado_em&assunto_id=eq.${plano.assuntoId}&tipo=eq.resumo_base&ativo=eq.true&order=ordem.asc&limit=1`).catch(()=>[]),
-          supa(`/rest/v1/conteudos_estudo?select=titulo,conteudo,fonte_nome,fonte_url,revisado_em&assunto_id=eq.${plano.assuntoId}&tipo=eq.atualizacao&ativo=eq.true&order=revisado_em.desc&limit=1`).catch(()=>[]),
-          supa(`/rest/v1/aulas?select=titulo,professor_canal,url,duracao_minutos,tipo,verificado_em&assunto_id=eq.${plano.assuntoId}&tipo=eq.principal&ativo=eq.true&order=ordem.asc&limit=1`).catch(()=>[]),
+          supa(`/rest/v1/conteudos_estudo?select=titulo,conteudo,fonte_nome,fonte_url,revisado_em&assunto_id=eq.${plano.assuntoId}&tipo=eq.resumo_base&ativo=eq.true&status_vigencia=eq.atual&order=ordem.asc&limit=1`).catch(()=>[]),
+          supa(`/rest/v1/conteudos_estudo?select=titulo,conteudo,fonte_nome,fonte_url,revisado_em&assunto_id=eq.${plano.assuntoId}&tipo=eq.atualizacao&ativo=eq.true&status_vigencia=eq.atual&order=revisado_em.desc&limit=1`).catch(()=>[]),
+          supa(`/rest/v1/conteudos_estudo?select=titulo,conteudo,fonte_nome,fonte_url,revisado_em&assunto_id=eq.${plano.assuntoId}&tipo=eq.atencao_prova&ativo=eq.true&status_vigencia=eq.atual&order=ordem.asc&limit=1`).catch(()=>[]),
+          supa(`/rest/v1/conteudos_estudo?select=titulo,conteudo,fonte_nome,fonte_url,revisado_em&assunto_id=eq.${plano.assuntoId}&tipo=eq.fonte_oficial&ativo=eq.true&status_vigencia=eq.atual&order=ordem.asc`).catch(()=>[]),
+          supa(`/rest/v1/aulas?select=titulo,professor_canal,url,duracao_minutos,tipo,verificado_em,nota_curadoria&assunto_id=eq.${plano.assuntoId}&tipo=in.(principal,complementar)&ativo=eq.true&order=ordem.asc`).catch(()=>[]),
           Promise.all([
             supa(`/rest/v1/dominio_assuntos?select=status,nivel_dominio,tempo_estudado_minutos,questoes_respondidas,questoes_corretas&assunto_id=eq.${plano.assuntoId}&limit=1`).catch(()=>[]),
             supa(`/rest/v1/progresso_assuntos?select=status,nivel_prontidao,questoes_alvo_respondidas,questoes_alvo_corretas&concurso_id=eq.${concursoAtualId}&assunto_id=eq.${plano.assuntoId}&limit=1`).catch(()=>[])
@@ -1451,12 +1456,17 @@
       document.getElementById('study-focus-progress').textContent = (pg||pp)
         ? `Domínio global ${Math.round(Number(pg?.nivel_dominio)||0)}% · Prontidão ${nomeConcursoAtual()} ${Math.round(Number(pp?.nivel_prontidao)||0)}%`
         : 'Ainda sem histórico';
-      document.getElementById('study-focus-summary').innerHTML=resumo?.[0] ? `<strong>${esc(resumo[0].titulo)}</strong><div style="margin-top:6px">${esc(resumo[0].conteudo).replace(/\n/g,'<br>')}</div>` : '<span class="study-empty">Resumo em preparação. Você já pode estudar pela aula/material próprio e praticar as questões mapeadas.</span>';
-      const aula=aulas?.[0];
-      document.getElementById('study-focus-class').innerHTML=aula ? `<strong>${esc(aula.titulo)}</strong><div style="margin-top:4px">${esc(aula.professor_canal||'')}</div><div style="margin-top:8px"><a class="btn btn-sm" href="${esc(aula.url)}" target="_blank" rel="noopener">Abrir aula${aula.duracao_minutos?` · ${aula.duracao_minutos} min`:''}</a></div>` : '<span class="study-empty">Aula principal ainda não cadastrada. A curadoria será adicionada sem alterar seu progresso.</span>';
+      const motivo = trilha?.observacao || `Este bloco faz parte da sequência de ${nomeConcursoAtual()} e foi ajustado ao seu tempo disponível de hoje.`;
+      document.getElementById('study-focus-why').innerHTML=`${esc(motivo)}<div style="margin-top:8px;color:var(--text-muted);font-size:12px">O domínio deste assunto é reaproveitado se você trocar de concurso.</div>`;
+      document.getElementById('study-focus-summary').innerHTML=resumo?.[0] ? `<strong>${esc(resumo[0].titulo)}</strong><div style="margin-top:8px;line-height:1.6">${esc(resumo[0].conteudo).replace(/\n/g,'<br>')}</div>${resumo[0].fonte_url?`<div style="margin-top:10px"><a href="${esc(resumo[0].fonte_url)}" target="_blank" rel="noopener">Consultar fonte-base</a></div>`:''}` : '<span class="study-empty">Resumo em preparação. Você já pode estudar pela aula/material próprio e praticar as questões mapeadas.</span>';
+      document.getElementById('study-focus-class').innerHTML=(aulas||[]).length ? aulas.map((a,i)=>`<div style="${i?'margin-top:14px;padding-top:12px;border-top:1px solid var(--border)':''}"><strong>${i===0?'Principal':'Complementar'} · ${esc(a.titulo)}</strong><div style="margin-top:4px">${esc(a.professor_canal||'')}${a.nota_curadoria?` · curadoria ${a.nota_curadoria}/100`:''}</div><div style="margin-top:8px"><a class="btn btn-sm" href="${esc(a.url)}" target="_blank" rel="noopener">Abrir no YouTube${a.duracao_minutos?` · ${a.duracao_minutos} min`:''}</a></div></div>`).join('') : '<span class="study-empty">Aula principal ainda não cadastrada. A curadoria será adicionada sem alterar seu progresso.</span>';
+      const att=atencao?.[0], aw=document.getElementById('study-focus-attention-wrap');
+      if(att){ aw.style.display='block'; document.getElementById('study-focus-attention').innerHTML=`<strong>${esc(att.titulo)}</strong><div style="margin-top:7px;line-height:1.55">${esc(att.conteudo).replace(/\n/g,'<br>')}</div>`; } else aw.style.display='none';
       const upd=atualiz?.[0], uw=document.getElementById('study-focus-update-wrap');
       if(upd){ uw.style.display='block'; document.getElementById('study-focus-update').innerHTML=`<strong>${esc(upd.titulo)}</strong><div style="margin-top:6px">${esc(upd.conteudo).replace(/\n/g,'<br>')}</div>${upd.fonte_url?`<div style="margin-top:8px"><a href="${esc(upd.fonte_url)}" target="_blank" rel="noopener">Fonte oficial</a></div>`:''}`; }
-      else { uw.style.display=assuntoInfo?.conteudo_dinamico?'block':'none'; if(assuntoInfo?.conteudo_dinamico) document.getElementById('study-focus-update').innerHTML='<span class="study-empty">Atualização oficial em preparação.</span>'; }
+      else { uw.style.display=assuntoInfo?.conteudo_dinamico?'block':'none'; if(assuntoInfo?.conteudo_dinamico) document.getElementById('study-focus-update').innerHTML='<span class="study-empty">Nenhuma atualização adicional cadastrada para este assunto.</span>'; }
+      const sw=document.getElementById('study-focus-sources-wrap');
+      if((fontes||[]).length){ sw.style.display='block'; document.getElementById('study-focus-sources').innerHTML=fontes.map(f=>`<div style="margin-bottom:7px">${f.fonte_url?`<a href="${esc(f.fonte_url)}" target="_blank" rel="noopener"><strong>${esc(f.fonte_nome||f.titulo)}</strong></a>`:`<strong>${esc(f.fonte_nome||f.titulo)}</strong>`}<div style="font-size:12px;color:var(--text-muted);margin-top:2px">${esc(f.conteudo||'')}</div></div>`).join(''); } else sw.style.display='none';
       document.getElementById('study-focus-practice').disabled=qtd===0;
       focus.style.display='block'; manual.style.display='none';
     }catch(e){ console.warn('Estudar agora:',e); focus.style.display='none'; manual.style.display='block'; }
@@ -1472,7 +1482,10 @@
 
   function praticarFocoEstudo(){
     const plano=studyFocusPlano; if(!plano) return;
+    qAssuntoIdMapeado=plano.assuntoId||null;
+    qQtd=Math.min(50,Math.max(5,Number(plano.questoes)||20));
     irParaPratica(plano.disciplina,plano.assunto||'');
+    const custom=document.getElementById('q-custom'); if(custom) custom.value=qQtd;
   }
 
   // ─── HELPERS ──────────────────────────────────────────────
@@ -2142,6 +2155,20 @@ Vá para "Questões" para praticar!`);
     return embaralhar(filtradas).slice(0, qtd);
   }
 
+  async function buscarQuestoesMapeadas(assuntoId, disciplina, qtd = 50, filtros = {}) {
+    const [maps, banco] = await Promise.all([
+      supa(`/rest/v1/questoes_assuntos?select=questao_id&assunto_id=eq.${assuntoId}`, {headers:{'Range':'0-999'}}),
+      supa(`/rest/v1/banco_questoes?select=*&disciplina=eq.${encodeURIComponent(disciplina)}`, {headers:{'Range':'0-4999'}})
+    ]);
+    const ids = new Set((maps||[]).map(m=>Number(m.questao_id)));
+    let rows=(banco||[]).filter(q=>ids.has(Number(q.id)));
+    rows=aplicarFiltrosQuestoes(rows,{...filtros,assunto:''});
+    const recentes=embaralhar(rows.filter(q=>q.oficial===true && Number(q.ano||0)>=2016));
+    const oficiais=embaralhar(rows.filter(q=>q.oficial===true && Number(q.ano||0)<2016));
+    const autorais=embaralhar(rows.filter(q=>q.oficial!==true));
+    return [...recentes,...oficiais,...autorais].slice(0,qtd);
+  }
+
   function restaurarConstrutorQuestoes() {
     document.querySelector('#q-select .builder-card').style.display='block';
     document.querySelector('#q-select .mode-tabs').style.display='grid';
@@ -2206,7 +2233,7 @@ Vá para "Questões" para praticar!`);
     document.getElementById('q-loading').style.display='block';
     try {
       const limite = qModo === 'manual' ? 250 : qQtd;
-      const rows = await buscarQuestoesBanco(qMat, filtros.assunto || '', limite, filtros);
+      const rows = qAssuntoIdMapeado ? await buscarQuestoesMapeadas(qAssuntoIdMapeado, qMat, limite, filtros) : await buscarQuestoesBanco(qMat, filtros.assunto || '', limite, filtros);
       document.getElementById('q-loading').style.display='none';
       if (!rows.length) { errEl.style.display='block'; errEl.textContent='Nenhuma questão encontrada com essa combinação de filtros.'; return; }
       if (qModo === 'manual') { renderSelecaoManual(rows); return; }
@@ -2260,7 +2287,7 @@ Vá para "Questões" para praticar!`);
     document.getElementById('fin-total').textContent   = total;
     try { await salvarResultadosPorAssunto(qSessaoRespostas); } catch(e) { console.error(e); }
     const aiTxt = pct>=80 ? `Excelente! ${pct}% de acerto. Continue!` : pct>=60 ? `${pct}% de acerto. Revise os erros para melhorar.` : `${pct}% de acerto. Recomendo rever o conteúdo antes de continuar.`;
-    document.getElementById('fin-ai-msg').innerHTML = `<div class="ai-header"><i class="ti ti-sparkles"></i> Análise</div><div class="ai-msg">${aiTxt}</div>`;
+    document.getElementById('fin-ai-msg').innerHTML = `<div class="ai-header"><i class="ti ti-chart-bar"></i> Diagnóstico da prática</div><div class="ai-msg">${aiTxt}</div>`;
     renderResumoSessao('q-final-breakdown', qSessaoRespostas);
   }
 
@@ -2459,7 +2486,7 @@ Vá para "Questões" para praticar!`);
     document.getElementById('revfin-total').textContent   = total;
     try { await salvarResultadosPorAssunto(revSessaoRespostas); } catch(e) { console.error(e); }
     const aiTxt = pct>=80?`Revisão excelente com ${pct}% de acerto!`:pct>=60?`${pct}% na revisão. Continue praticando os pontos fracos.`:`${pct}% na revisão. Recomendo rever os conteúdos antes da próxima revisão.`;
-    document.getElementById('revfin-ai').innerHTML = `<div class="ai-header"><i class="ti ti-sparkles"></i> Análise</div><div class="ai-msg">${aiTxt}</div>`;
+    document.getElementById('revfin-ai').innerHTML = `<div class="ai-header"><i class="ti ti-chart-bar"></i> Diagnóstico da revisão</div><div class="ai-msg">${aiTxt}</div>`;
     renderResumoSessao('rev-final-breakdown', revSessaoRespostas);
   }
 
