@@ -557,7 +557,7 @@
 <div id="main-app" class="main-app" style="display:none">
   <div class="sidebar">
     <div class="sidebar-logo"><span class="brand-mark">M</span><span><strong>MD</strong> Trilha</span></div>
-    <div class="sidebar-user" id="sidebar-user"></div><div id="sidebar-concurso" style="font-size:11px;color:rgba(255,255,255,.65);padding:0 18px 4px"></div><div style="font-size:10px;color:rgba(255,255,255,.42);padding:0 18px 12px">Versão v1.12</div>
+    <div class="sidebar-user" id="sidebar-user"></div><div id="sidebar-concurso" style="font-size:11px;color:rgba(255,255,255,.65);padding:0 18px 4px"></div><div style="font-size:10px;color:rgba(255,255,255,.42);padding:0 18px 12px">Versão v1.13</div>
     <div class="nav-group-label">Sua trilha</div>
     <div class="nav-item mobile-primary active" onclick="goTo('dashboard',this)"><i class="ti ti-home"></i> Início</div>
     <div class="nav-item mobile-primary" onclick="goTo('cronograma',this)"><i class="ti ti-calendar-event"></i> Plano semanal</div>
@@ -614,7 +614,7 @@
         <div id="study-focus" class="study-focus-card" style="display:none">
           <div class="study-focus-head">
             <div><div class="study-focus-kicker" id="study-focus-kicker">Sua atividade</div><div class="study-focus-title" id="study-focus-title">Carregando...</div><div class="study-focus-sub" id="study-focus-sub"></div><div class="study-badges" id="study-focus-badges"></div></div>
-            <button class="btn btn-sm" onclick="document.getElementById('study-topic-switch').style.display='flex'">Escolher outro assunto</button><button class="btn btn-sm" onclick="abrirSFNPiloto()">Abrir SFN</button>
+            <button class="btn btn-sm" onclick="document.getElementById('study-topic-switch').style.display='flex'">Escolher outro assunto</button>
           </div>
           <div class="study-meta-row"><span><strong id="study-focus-time">—</strong> planejados</span><span><strong id="study-focus-qtd">—</strong> questões mapeadas</span><span id="study-focus-progress">Ainda sem histórico</span></div>
           <div class="study-sequence" id="study-focus-sequence"></div>
@@ -901,11 +901,12 @@
         <div style="max-width:580px">
           <div id="rev-select">
             <div class="card-title" style="margin-bottom:14px">Revisão inteligente</div>
-            <div class="ai-box" style="margin-bottom:16px">
-              <div class="ai-header"><i class="ti ti-sparkles"></i> Como funciona</div>
-              <div class="ai-msg">As questões são distribuídas entre os assuntos que você estudou no período, priorizando disciplinas com menor desempenho.</div>
+            <div class="revisao-box" style="margin-bottom:16px">
+              <div class="revisao-tag">Fila adaptativa</div>
+              <div style="font-size:13px;color:var(--text-secondary);line-height:1.55">Erros entram automaticamente na fila. Ao acertar em revisões separadas, o intervalo aumenta; três acertos consecutivos retiram a questão da fila ativa.</div>
+              <div id="rev-smart-status" style="margin-top:12px;font-size:12px;color:var(--text-muted)">Carregando sua fila...</div>
             </div>
-            <div class="section-title">Período</div>
+            <div class="section-title">Período para completar a revisão</div>
             <div style="display:flex;gap:8px;margin-bottom:16px">
               <button class="btn btn-sm" id="rev-semana-btn" onclick="setRevPeriodo('semana',this)" style="font-weight:600">Esta semana</button>
               <button class="btn btn-sm" id="rev-mes-btn" onclick="setRevPeriodo('mes',this)">Este mês</button>
@@ -918,10 +919,10 @@
               <input type="number" id="rev-custom" placeholder="Outro" min="1" max="200" style="width:80px">
             </div>
             <div id="rev-preview" class="revisao-box" style="display:none">
-              <div class="revisao-tag">Disciplinas do período</div>
+              <div class="revisao-tag">Base complementar do período</div>
               <div id="rev-preview-content" style="font-size:13px;color:var(--text-secondary)"></div>
             </div>
-            <button class="btn btn-primary" onclick="iniciarRevisao()" style="margin-top:8px">Iniciar revisão ↗</button>
+            <button class="btn btn-primary" onclick="iniciarRevisao()" style="margin-top:8px">Iniciar revisão</button>
             <div id="rev-erro" style="color:var(--text-danger);font-size:12px;margin-top:8px;display:none"></div>
           </div>
           <div id="rev-loading" style="display:none" class="q-loading"><i class="ti ti-loader-2" style="font-size:30px;display:block;margin-bottom:12px"></i>Montando revisão...</div>
@@ -1049,7 +1050,8 @@
   let praticaPendente = null, qAgendaEncadeada = null;
   let conteudoExtra = { tipo: null, texto: null, base64: null, mimeType: null }; // conteúdo extra legado
   let qMat = '', qQtd = 10, qModo = 'rapida', qBancoFiltrado = [], questoesList = [], qAtual = 0, qAcertos = 0, qErros = 0, qRespondida = false, qSessaoRespostas = [], qAssuntoIdMapeado = null;
-  let revPeriodo = 'semana', revQtd = 20, revList = [], revAtual = 0, revAcertos = 0, revErros = 0, revRespondida = false, revSessaoRespostas = [];
+  let revPeriodo = 'semana', revQtd = 20, revList = [], revAtual = 0, revAcertos = 0, revErros = 0, revRespondida = false, revSessaoRespostas = [], revPersistPromises = [];
+  let revFilaPendente = [];
 
   // ─── SUPABASE ─────────────────────────────────────────────
   async function supa(path, opts = {}) {
@@ -1480,28 +1482,13 @@
     await renderEstudarAgora();
   }
 
-  async function abrirSFNPiloto(){
-    try{
-      await carregarBaseEstudoRemota();
-      const t=(trilhaAtual||[]).find(x=>String(x.slug||'')==='sfn-estrutura-cmn-bacen' || /SFN: estrutura/i.test(String(x.assunto||'')));
-      if(!t) throw new Error('SFN não encontrado na trilha atual.');
-      const disp=disponibilidadeParaData(new Date());
-      const minutos=Math.max(30,Math.min(Number(disp?.minutos_disponiveis)||60,Number(t.carga_estimada_minutos)||60));
-      studyFocusOverride={disciplina:t.disciplina,disciplinaId:t.disciplinaId,assunto:t.assunto,assuntoId:t.assunto_id,atividade:'teoria_questoes',duracao:minutos,questoes:10,agendaId:null,status:'escolhido',geradoAutomaticamente:false};
-      studyFocusData=dataLocalKey(new Date());
-      await renderEstudarAgora();
-    }catch(e){
-      mostrarErroEstudarAgora(e);
-    }
-  }
-
   function mostrarErroEstudarAgora(e){
     const focus=document.getElementById('study-focus');
     const manual=document.getElementById('timer-manual-card');
     if(focus) focus.style.display='block';
     if(manual) manual.style.display='none';
     const title=document.getElementById('study-focus-title'); if(title) title.textContent='Não foi possível carregar o conteúdo';
-    const sub=document.getElementById('study-focus-sub'); if(sub) sub.textContent='Diagnóstico v1.12';
+    const sub=document.getElementById('study-focus-sub'); if(sub) sub.textContent='Diagnóstico v1.13';
     const why=document.getElementById('study-focus-why'); if(why) why.innerHTML=`<strong>Erro ao consultar o Supabase:</strong><div style="margin-top:8px;font-family:monospace;font-size:12px;word-break:break-word">${escapeHtml(e?.message||String(e))}</div><div style="margin-top:8px;color:var(--text-muted);font-size:12px">Se esta caixa aparecer, me envie uma captura. Assim identificamos a consulta exata que falhou.</div>`;
     const summary=document.getElementById('study-focus-summary'); if(summary) summary.innerHTML='<span class="study-empty">O HTML v1.11 carregou corretamente, mas houve falha ao buscar o conteúdo remoto.</span>';
   }
@@ -1729,7 +1716,63 @@
     localStorage.setItem(respostaStorageKey(), JSON.stringify(rows.slice(-5000)));
     if (currentUser?.user?.id && item.dbId) {
       carregarConcursoAtual().then(()=>supa('/rest/v1/respostas_questoes',{method:'POST',body:JSON.stringify({user_id:currentUser.user.id,questao_id:item.dbId,concurso_id:concursoAtualId,resposta_marcada:String(escolha),correta:!!acertou,modo:contexto==='revisao'?'revisao':'pratica'})})).catch(e=>console.warn('Resposta remota não salva:',e));
+      const revPromise=registrarRevisaoInteligente(item,!!acertou,contexto).catch(e=>console.warn('Fila de revisão não atualizada:',e));
+      if(contexto==='revisao') revPersistPromises.push(revPromise);
     }
+  }
+
+  function dataIsoMaisDias(dias){
+    const d=new Date(); d.setDate(d.getDate()+Number(dias||0)); return d.toISOString();
+  }
+
+  async function assuntoPrincipalDaQuestao(questaoId){
+    if(!questaoId) return null;
+    try{
+      const rows=await supa(`/rest/v1/questoes_assuntos?select=assunto_id&questao_id=eq.${Number(questaoId)}&principal=eq.true&limit=1`);
+      return rows?.[0]?.assunto_id ? Number(rows[0].assunto_id) : null;
+    }catch(e){ return null; }
+  }
+
+  async function registrarRevisaoInteligente(q, acertou, contexto='questoes'){
+    const uid=currentUser?.user?.id, qid=Number(q?.dbId||0);
+    if(!uid || !qid) return;
+    await carregarConcursoAtual();
+    const agora=new Date().toISOString();
+    const pend=await supa(`/rest/v1/revisoes?select=*&questao_id=eq.${qid}&status=eq.pendente&order=criado_em.desc&limit=1`).catch(()=>[]);
+    const atual=pend?.[0]||null;
+
+    if(contexto!=='revisao'){
+      if(acertou) return;
+      const assuntoId=Number(atual?.assunto_id)||await assuntoPrincipalDaQuestao(qid);
+      if(!assuntoId) return;
+      const row={prioridade:5,agendada_para:dataIsoMaisDias(1),motivo:'erro',status:'pendente',acertos_consecutivos:0,tentativas:(Number(atual?.tentativas)||0)+1,ultima_resposta_correta:false,ultima_tentativa_em:agora,intervalo_dias:1};
+      if(atual){
+        await supa(`/rest/v1/revisoes?id=eq.${atual.id}`,{method:'PATCH',body:JSON.stringify(row)});
+      }else{
+        await supa('/rest/v1/revisoes',{method:'POST',body:JSON.stringify({user_id:uid,concurso_id:concursoAtualId,assunto_id:assuntoId,questao_id:qid,...row})});
+      }
+      return;
+    }
+
+    if(!atual){
+      if(acertou) return;
+      const assuntoId=await assuntoPrincipalDaQuestao(qid);
+      if(!assuntoId) return;
+      await supa('/rest/v1/revisoes',{method:'POST',body:JSON.stringify({user_id:uid,concurso_id:concursoAtualId,assunto_id:assuntoId,questao_id:qid,motivo:'erro',prioridade:5,agendada_para:dataIsoMaisDias(1),status:'pendente',acertos_consecutivos:0,tentativas:1,ultima_resposta_correta:false,ultima_tentativa_em:agora,intervalo_dias:1})});
+      return;
+    }
+    const tentativas=(Number(atual.tentativas)||0)+1;
+    if(!acertou){
+      await supa(`/rest/v1/revisoes?id=eq.${atual.id}`,{method:'PATCH',body:JSON.stringify({prioridade:5,agendada_para:dataIsoMaisDias(1),acertos_consecutivos:0,tentativas,ultima_resposta_correta:false,ultima_tentativa_em:agora,intervalo_dias:1})});
+      return;
+    }
+    const seq=(Number(atual.acertos_consecutivos)||0)+1;
+    if(seq>=3){
+      await supa(`/rest/v1/revisoes?id=eq.${atual.id}`,{method:'PATCH',body:JSON.stringify({status:'concluida',concluida_em:agora,acertos_consecutivos:seq,tentativas,ultima_resposta_correta:true,ultima_tentativa_em:agora,intervalo_dias:14,prioridade:1})});
+      return;
+    }
+    const intervalo=seq===1?3:7;
+    await supa(`/rest/v1/revisoes?id=eq.${atual.id}`,{method:'PATCH',body:JSON.stringify({agendada_para:dataIsoMaisDias(intervalo),acertos_consecutivos:seq,tentativas,ultima_resposta_correta:true,ultima_tentativa_em:agora,intervalo_dias:intervalo,prioridade:seq===1?4:3})});
   }
 
   function metaQuestaoHtml(q) {
@@ -2655,65 +2698,89 @@
   function setRevPeriodo(p,el) { revPeriodo=p; document.getElementById('rev-semana-btn').style.fontWeight=p==='semana'?'600':'400'; document.getElementById('rev-mes-btn').style.fontWeight=p==='mes'?'600':'400'; carregarPreviewRevisao(); }
   function setRevQtd(n,el) { revQtd=n; document.getElementById('rev-custom').value=''; document.querySelectorAll('#rev-select .btn-sm').forEach(b=>b.style.fontWeight='400'); if(el)el.style.fontWeight='600'; }
 
+  async function carregarFilaRevisaoPendente(){
+    try{
+      const rows=await supa('/rest/v1/revisoes?select=id,questao_id,assunto_id,prioridade,agendada_para,acertos_consecutivos,tentativas,motivo&status=eq.pendente&order=agendada_para.asc,prioridade.desc');
+      revFilaPendente=rows||[];
+      return revFilaPendente;
+    }catch(e){ revFilaPendente=[]; return []; }
+  }
+
   async function carregarPreviewRevisao() {
     try {
-      const ini = getPeriodoInicio();
-      const sessoes = await carregarSessoesCompat(ini);
+      const [fila,sessoes] = await Promise.all([carregarFilaRevisaoPendente(),carregarSessoesCompat(getPeriodoInicio())]);
+      const agora=Date.now();
+      const vencidas=(fila||[]).filter(r=>new Date(r.agendada_para).getTime()<=agora);
+      const proximas=(fila||[]).filter(r=>new Date(r.agendada_para).getTime()>agora);
+      const status=document.getElementById('rev-smart-status');
+      if(status){
+        if(vencidas.length){
+          const erros=vencidas.filter(r=>r.motivo==='erro' && Number(r.acertos_consecutivos||0)===0).length;
+          status.innerHTML=`<strong style="color:var(--text-primary)">${vencidas.length}</strong> questão${vencidas.length===1?'':'ões'} pronta${vencidas.length===1?'':'s'} para revisar agora${erros?` · ${erros} de erro recente`:''}.`;
+        }else if(proximas.length){
+          const d=new Date(proximas[0].agendada_para);
+          status.innerHTML=`Fila em dia. Próxima revisão programada para <strong style="color:var(--text-primary)">${d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})}</strong>.`;
+        }else status.textContent='Sua fila ainda está vazia. Ao errar uma questão, ela entra automaticamente aqui.';
+      }
+
       const preview = document.getElementById('rev-preview');
       if (!sessoes || sessoes.length===0) { preview.style.display='none'; return; }
       const contagem = {};
       sessoes.forEach(s => { if(!contagem[s.disciplina]) contagem[s.disciplina]=0; contagem[s.disciplina]++; });
-      const total = Object.values(contagem).reduce((a,b)=>a+b,0);
-      document.getElementById('rev-preview-content').innerHTML = Object.entries(contagem).map(([d,c])=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border)"><span>${d}</span><span style="color:var(--text-muted)">${c} sessão${c>1?'ões':''}</span></div>`).join('');
+      document.getElementById('rev-preview-content').innerHTML = Object.entries(contagem).map(([d,c])=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border)"><span>${escapeHtml(d)}</span><span style="color:var(--text-muted)">${c} sessão${c>1?'ões':''}</span></div>`).join('');
       preview.style.display = 'block';
     } catch(e) {}
+  }
+
+  async function buscarQuestoesDaFila(fila, limite){
+    const escolhidas=(fila||[]).filter(r=>new Date(r.agendada_para).getTime()<=Date.now()).slice(0,limite);
+    const ids=escolhidas.map(r=>Number(r.questao_id)).filter(Boolean);
+    if(!ids.length) return [];
+    const rows=await supa(`/rest/v1/banco_questoes?select=*&id=in.(${ids.join(',')})&ativa=eq.true`);
+    const mapa=Object.fromEntries((rows||[]).map(q=>[Number(q.id),normalizarQuestao(q)]));
+    return ids.map(id=>mapa[id]).filter(Boolean);
+  }
+
+  async function montarComplementoRevisao(quantidade){
+    if(quantidade<=0) return [];
+    const ini=getPeriodoInicio();
+    const [sessoes,qRes]=await Promise.all([carregarSessoesCompat(ini),carregarResultadosCompat(ini)]);
+    if(!sessoes?.length) return [];
+    const nomesBanco=DISCIPLINAS_BANCO.map(d=>d.nome);
+    const disciplinas=[...new Set(sessoes.map(s=>s.disciplina))].filter(d=>nomesBanco.includes(d));
+    if(!disciplinas.length) return [];
+    const perf={}; (qRes||[]).forEach(q=>{if(!perf[q.disciplina])perf[q.disciplina]={total:0,acertos:0};perf[q.disciplina].total+=q.total;perf[q.disciplina].acertos+=q.acertos;});
+    const pesos=disciplinas.map(d=>{const p=perf[d];const pct=p&&p.total>0?(p.acertos/p.total*100):50;return Math.max(100-pct,15);});
+    const soma=pesos.reduce((a,b)=>a+b,0)||1;
+    const qtds=disciplinas.map((d,i)=>Math.max(1,Math.ceil(quantidade*pesos[i]/soma)));
+    const lotes=await Promise.all(disciplinas.map((d,i)=>buscarQuestoesBanco(d,'',qtds[i])));
+    return embaralhar(lotes.flat()).slice(0,quantidade);
   }
 
   async function iniciarRevisao() {
     const custom = parseInt(document.getElementById('rev-custom').value);
     if (custom>0) revQtd = Math.min(custom, 200);
-    const errEl = document.getElementById('rev-erro');
-    errEl.style.display = 'none';
+    const errEl = document.getElementById('rev-erro'); errEl.style.display='none';
     try {
-      const ini = getPeriodoInicio();
-      const [sessoes, qRes] = await Promise.all([carregarSessoesCompat(ini), carregarResultadosCompat(ini)]);
-      if (!sessoes || sessoes.length===0) { errEl.style.display='block'; errEl.textContent='Nenhum estudo registrado neste período ainda.'; return; }
+      document.getElementById('rev-select').style.display='none';
+      document.getElementById('rev-loading').style.display='block';
+      const fila=await carregarFilaRevisaoPendente();
+      const prioritarias=await buscarQuestoesDaFila(fila,revQtd);
+      const idsPri=new Set(prioritarias.map(q=>Number(q.dbId)).filter(Boolean));
+      const complemento=await montarComplementoRevisao(Math.max(0,revQtd-prioritarias.length));
+      revList=[...prioritarias,...complemento.filter(q=>!idsPri.has(Number(normalizarQuestao(q).dbId)))].slice(0,revQtd).map(normalizarQuestao);
 
-      const nomesBanco   = DISCIPLINAS_BANCO.map(d=>d.nome);
-      const disciplinas  = [...new Set(sessoes.map(s=>s.disciplina))].filter(d => nomesBanco.includes(d));
-      if (disciplinas.length === 0) { errEl.style.display='block'; errEl.textContent='As disciplinas estudadas neste período ainda não têm questões no banco.'; return; }
-
-      const perfPorDisc = {};
-      (qRes||[]).forEach(q => { if(!perfPorDisc[q.disciplina]) perfPorDisc[q.disciplina]={total:0,acertos:0}; perfPorDisc[q.disciplina].total+=q.total; perfPorDisc[q.disciplina].acertos+=q.acertos; });
-
-      // Peso maior para disciplinas com pior desempenho (ou sem histórico ainda, tratado como neutro)
-      const pesos = disciplinas.map(d => {
-        const p = perfPorDisc[d];
-        const pct = p && p.total>0 ? (p.acertos/p.total*100) : 50;
-        return Math.max(100 - pct, 15); // piso de 15 para toda disciplina continuar aparecendo
-      });
-      const somaPesos = pesos.reduce((a,b)=>a+b,0);
-      const qtdPorDisc = disciplinas.map((d,i) => Math.max(1, Math.round(revQtd * pesos[i] / somaPesos)));
-
-      document.getElementById('rev-select').style.display  = 'none';
-      document.getElementById('rev-loading').style.display = 'block';
-
-      const lotes = await Promise.all(disciplinas.map((d,i) => buscarQuestoesBanco(d, '', qtdPorDisc[i])));
-      revList = embaralhar(lotes.flat()).slice(0, revQtd);
-
-      if (revList.length === 0) {
-        document.getElementById('rev-loading').style.display='none';
-        document.getElementById('rev-select').style.display='block';
-        errEl.style.display='block';
-        errEl.textContent='Nenhuma questão disponível no banco para essas disciplinas ainda.';
-        return;
+      if(!revList.length){
+        document.getElementById('rev-loading').style.display='none'; document.getElementById('rev-select').style.display='block';
+        errEl.style.display='block'; errEl.textContent='Ainda não há questões de revisão. Estude e pratique alguns assuntos; seus erros serão agendados automaticamente.'; return;
       }
-
-      revAtual=0; revAcertos=0; revErros=0; revSessaoRespostas=[];
-      document.getElementById('rev-loading').style.display = 'none';
-      document.getElementById('rev-quiz').style.display    = 'block';
+      revAtual=0; revAcertos=0; revErros=0; revSessaoRespostas=[]; revPersistPromises=[];
+      document.getElementById('rev-loading').style.display='none'; document.getElementById('rev-quiz').style.display='block';
       renderRevisao();
-    } catch(e) { document.getElementById('rev-loading').style.display='none'; document.getElementById('rev-select').style.display='block'; errEl.style.display='block'; errEl.textContent='Erro ao montar a revisão. Tente novamente.'; console.error(e); }
+    }catch(e){
+      document.getElementById('rev-loading').style.display='none'; document.getElementById('rev-select').style.display='block';
+      errEl.style.display='block'; errEl.textContent='Erro ao montar a revisão. Tente novamente.'; console.error(e);
+    }
   }
 
   function renderRevisao() {
@@ -2754,9 +2821,10 @@
     document.getElementById('revfin-erros').textContent   = revErros;
     document.getElementById('revfin-pct').textContent     = pct + '%';
     document.getElementById('revfin-total').textContent   = total;
-    try { await salvarResultadosPorAssunto(revSessaoRespostas); } catch(e) { console.error(e); }
-    const aiTxt = pct>=80?`Revisão excelente com ${pct}% de acerto!`:pct>=60?`${pct}% na revisão. Continue praticando os pontos fracos.`:`${pct}% na revisão. Recomendo rever os conteúdos antes da próxima revisão.`;
+    try { await Promise.allSettled(revPersistPromises); await salvarResultadosPorAssunto(revSessaoRespostas); } catch(e) { console.error(e); }
+    const aiTxt = pct>=80?`Ótima revisão: ${pct}% de acerto. As questões corretas terão intervalos maiores automaticamente.`:pct>=60?`${pct}% de acerto. Os erros voltam mais cedo e os acertos começam a ser espaçados.`:`${pct}% de acerto. Os erros retornam em curto prazo; vale rever a teoria dos pontos fracos antes da próxima rodada.`;
     document.getElementById('revfin-ai').innerHTML = `<div class="ai-header"><i class="ti ti-chart-bar"></i> Diagnóstico da revisão</div><div class="ai-msg">${aiTxt}</div>`;
+    carregarPreviewRevisao();
     renderResumoSessao('rev-final-breakdown', revSessaoRespostas);
   }
 
