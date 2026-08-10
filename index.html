@@ -190,6 +190,12 @@
     .finalizar-info-item { text-align: center; }
     .finalizar-info-val { font-size: 22px; font-weight: 600; }
     .finalizar-info-lab { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+    .study-sequence { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin:12px 0; font-size:12px; color:var(--text-muted); }
+    .study-sequence .step { display:inline-flex; align-items:center; gap:6px; padding:6px 9px; border:1px solid var(--border); border-radius:999px; background:var(--surface-0); }
+    .study-sequence .step.active { color:var(--text-primary); border-color:rgba(255,123,0,.35); background:rgba(255,123,0,.08); font-weight:600; }
+    .study-sequence .step.done { color:var(--text-success); border-color:rgba(36,150,100,.28); background:rgba(36,150,100,.07); }
+    .post-theory-card { max-width:560px; margin:0 auto; padding:24px; border:1px solid var(--border); border-radius:16px; background:var(--surface-1); }
+    .post-theory-check { width:44px; height:44px; border-radius:50%; display:flex; align-items:center; justify-content:center; background:rgba(36,150,100,.10); color:var(--text-success); font-size:24px; margin-bottom:14px; }
 
     /* CONTEÚDO EXTRA */
     .conteudo-tabs { display: flex; gap: 0; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; margin-bottom: 12px; }
@@ -551,7 +557,7 @@
 <div id="main-app" class="main-app" style="display:none">
   <div class="sidebar">
     <div class="sidebar-logo"><span class="brand-mark">M</span><span><strong>MD</strong> Trilha</span></div>
-    <div class="sidebar-user" id="sidebar-user"></div><div id="sidebar-concurso" style="font-size:11px;color:rgba(255,255,255,.65);padding:0 18px 4px"></div><div style="font-size:10px;color:rgba(255,255,255,.42);padding:0 18px 12px">Versão v1.10</div>
+    <div class="sidebar-user" id="sidebar-user"></div><div id="sidebar-concurso" style="font-size:11px;color:rgba(255,255,255,.65);padding:0 18px 4px"></div><div style="font-size:10px;color:rgba(255,255,255,.42);padding:0 18px 12px">Versão v1.11</div>
     <div class="nav-group-label">Sua trilha</div>
     <div class="nav-item mobile-primary active" onclick="goTo('dashboard',this)"><i class="ti ti-home"></i> Início</div>
     <div class="nav-item mobile-primary" onclick="goTo('cronograma',this)"><i class="ti ti-calendar-event"></i> Plano semanal</div>
@@ -611,6 +617,7 @@
             <button class="btn btn-sm" onclick="document.getElementById('study-topic-switch').style.display='flex'">Escolher outro assunto</button><button class="btn btn-sm" onclick="abrirSFNPiloto()">Abrir SFN piloto</button>
           </div>
           <div class="study-meta-row"><span><strong id="study-focus-time">—</strong> planejados</span><span><strong id="study-focus-qtd">—</strong> questões mapeadas</span><span id="study-focus-progress">Ainda sem histórico</span></div>
+          <div class="study-sequence" id="study-focus-sequence"></div>
           <div class="study-panel" style="margin-bottom:12px"><div class="study-panel-title"><i class="ti ti-target-arrow"></i> Por que estudar isto agora?</div><div class="study-panel-body" id="study-focus-why"><span class="study-empty">A trilha está calculando a prioridade deste bloco.</span></div></div>
           <div class="study-grid">
             <div class="study-panel"><div class="study-panel-title"><i class="ti ti-notebook"></i> Resumo essencial</div><div class="study-panel-body" id="study-focus-summary"><span class="study-empty">Conteúdo em preparação.</span></div></div>
@@ -619,7 +626,10 @@
           <div id="study-focus-attention-wrap" class="study-panel" style="display:none;margin-top:12px"><div class="study-panel-title"><i class="ti ti-alert-triangle"></i> Atenção para prova</div><div class="study-panel-body" id="study-focus-attention"></div></div>
           <div id="study-focus-update-wrap" class="study-panel" style="display:none;margin-top:12px"><div class="study-panel-title"><i class="ti ti-refresh"></i> Atualização importante</div><div class="study-panel-body" id="study-focus-update"></div></div>
           <div id="study-focus-sources-wrap" class="study-panel" style="display:none;margin-top:12px"><div class="study-panel-title"><i class="ti ti-link"></i> Fontes oficiais</div><div class="study-panel-body" id="study-focus-sources"></div></div>
-          <div class="study-actions"><button class="btn btn-primary" onclick="iniciarFocoEstudo()"><i class="ti ti-player-play"></i> Iniciar esta atividade</button><button class="btn" id="study-focus-practice" onclick="praticarFocoEstudo()"><i class="ti ti-list-check"></i> Praticar este assunto</button></div>
+          <div class="study-actions">
+            <button class="btn btn-primary" id="study-focus-main-action" onclick="acaoPrincipalFocoEstudo()"><i class="ti ti-player-play"></i> <span id="study-focus-main-label">Iniciar estudo</span></button>
+            <button class="btn" id="study-focus-skip-theory" onclick="pularTeoriaEPraticar()" style="display:none"><i class="ti ti-player-skip-forward"></i> Já estudei este conteúdo · ir para questões</button>
+          </div>
           <div id="study-topic-switch" style="display:none;gap:8px;align-items:center;margin-top:14px;padding-top:14px;border-top:1px solid var(--border);flex-wrap:wrap"><select id="study-topic-select" class="form-input" style="flex:1;min-width:250px"></select><button class="btn btn-primary btn-sm" onclick="abrirAssuntoDaTrilha()">Abrir assunto</button><button class="btn btn-sm" onclick="this.parentElement.style.display='none'">Cancelar</button></div>
         </div>
         <div class="card" id="timer-manual-card" style="max-width:480px;margin:0 auto">
@@ -650,7 +660,7 @@
                   </div>
                   <div class="btn-row">
                     <button class="btn" id="btn-pausar" onclick="pausarTimer()">Pausar</button>
-                    <button class="btn btn-primary" onclick="irParaFinalizar()">Finalizar estudo</button>
+                    <button class="btn btn-primary" id="btn-concluir-teoria" onclick="irParaFinalizar()">Finalizar estudo</button>
                   </div>
                 </div>
               </div>
@@ -709,8 +719,28 @@
               <div class="btn-row" style="justify-content:flex-start;gap:10px">
                 <button class="btn" onclick="descartarSessaoAtual()"><i class="ti ti-trash"></i> Descartar sessão</button>
                 <button class="btn" onclick="voltarAoTimer()"><i class="ti ti-arrow-left"></i> Voltar</button>
-                <button class="btn btn-primary" onclick="confirmarFinalizar()">Salvar e finalizar ✓</button>
+                <button class="btn btn-primary" id="btn-salvar-finalizar" onclick="confirmarFinalizar()">Salvar e finalizar ✓</button>
               </div>
+            </div>
+          </div>
+
+          <!-- TEORIA CONCLUÍDA / PRÓXIMA ETAPA -->
+          <div id="timer-step4" style="display:none">
+            <div class="post-theory-card">
+              <div class="post-theory-check"><i class="ti ti-check"></i></div>
+              <div class="eyebrow">Etapa 1 concluída</div>
+              <h2 style="margin:5px 0 8px">Teoria salva ✓</h2>
+              <p id="post-theory-text" style="color:var(--text-secondary);line-height:1.55;margin:0 0 18px">Agora vamos consolidar o assunto com questões.</p>
+              <div class="study-sequence" style="margin-bottom:20px">
+                <span class="step done"><i class="ti ti-check"></i> Teoria</span><span>→</span>
+                <span class="step active"><i class="ti ti-list-check"></i> Questões</span><span>→</span>
+                <span class="step"><i class="ti ti-chart-bar"></i> Resultado</span>
+              </div>
+              <div class="btn-row" style="justify-content:flex-start;gap:10px;flex-wrap:wrap">
+                <button class="btn btn-primary" onclick="iniciarPraticaPosTeoria()"><i class="ti ti-list-check"></i> <span id="post-theory-practice-label">Praticar questões</span></button>
+                <button class="btn" onclick="continuarPraticaDepois()"><i class="ti ti-clock-pause"></i> Continuar depois</button>
+              </div>
+              <div style="font-size:11px;color:var(--text-muted);margin-top:12px">Se continuar depois, a teoria permanece salva e o bloco volta como “prática pendente”.</div>
             </div>
           </div>
         </div>
@@ -1015,7 +1045,8 @@
     cronograma: { Segunda:'Conhecimentos Bancários', Terça:'Vendas e Negociação', Quarta:'Informática', Quinta:'Português', Sexta:'Revisão e Questões', Sábado:'Livre', Domingo:'Livre' }
   };
 
-  let timerInterval = null, timerSec = 0, timerPaused = false, timerMat = '', timerAssunto = '', timerMetaOverride = null, timerPlanoDataKey = null, timerAgendaId = null;
+  let timerInterval = null, timerSec = 0, timerPaused = false, timerMat = '', timerAssunto = '', timerAssuntoId = null, timerMetaOverride = null, timerPlanoDataKey = null, timerAgendaId = null;
+  let praticaPendente = null, qAgendaEncadeada = null;
   let conteudoExtra = { tipo: null, texto: null, base64: null, mimeType: null }; // conteúdo extra legado
   let qMat = '', qQtd = 10, qModo = 'rapida', qBancoFiltrado = [], questoesList = [], qAtual = 0, qAcertos = 0, qErros = 0, qRespondida = false, qSessaoRespostas = [], qAssuntoIdMapeado = null;
   let revPeriodo = 'semana', revQtd = 20, revList = [], revAtual = 0, revAcertos = 0, revErros = 0, revRespondida = false, revSessaoRespostas = [];
@@ -1470,9 +1501,9 @@
     if(focus) focus.style.display='block';
     if(manual) manual.style.display='none';
     const title=document.getElementById('study-focus-title'); if(title) title.textContent='Não foi possível carregar o conteúdo';
-    const sub=document.getElementById('study-focus-sub'); if(sub) sub.textContent='Diagnóstico v1.10';
+    const sub=document.getElementById('study-focus-sub'); if(sub) sub.textContent='Diagnóstico v1.11';
     const why=document.getElementById('study-focus-why'); if(why) why.innerHTML=`<strong>Erro ao consultar o Supabase:</strong><div style="margin-top:8px;font-family:monospace;font-size:12px;word-break:break-word">${escapeHtml(e?.message||String(e))}</div><div style="margin-top:8px;color:var(--text-muted);font-size:12px">Se esta caixa aparecer, me envie uma captura. Assim identificamos a consulta exata que falhou.</div>`;
-    const summary=document.getElementById('study-focus-summary'); if(summary) summary.innerHTML='<span class="study-empty">O HTML v1.10 carregou corretamente, mas houve falha ao buscar o conteúdo remoto.</span>';
+    const summary=document.getElementById('study-focus-summary'); if(summary) summary.innerHTML='<span class="study-empty">O HTML v1.11 carregou corretamente, mas houve falha ao buscar o conteúdo remoto.</span>';
   }
 
   async function buscarFocoAutomatico(){
@@ -1482,18 +1513,18 @@
     if(hojePlano && hojePlano.disciplina!=='Livre' && hojePlano.assuntoId) return {plano:hojePlano,dataKey:hojeKey,kicker:'Sua atividade de hoje'};
 
     const campos='id,data,tipo_atividade,duracao_planejada_minutos,questoes_planejadas,status,origem,assunto_livre,ordem_no_dia,gerado_automaticamente,disciplina_id,assunto_id,disciplinas(id,nome),assuntos(id,nome)';
-    let atrasadas=await supa(`/rest/v1/agenda_estudo?select=${campos}&concurso_id=eq.${concursoAtualId}&data=lt.${hojeKey}&status=in.(planejada,pendente,movida)&assunto_id=not.is.null&order=data.asc,ordem_no_dia.asc&limit=1`).catch(()=>[]);
+    let atrasadas=await supa(`/rest/v1/agenda_estudo?select=${campos}&concurso_id=eq.${concursoAtualId}&data=lt.${hojeKey}&status=in.(planejada,pendente,movida,em_andamento)&assunto_id=not.is.null&order=data.asc,ordem_no_dia.asc&limit=1`).catch(()=>[]);
     if(atrasadas?.[0]){
       const r=atrasadas[0];
       const dt=new Date(r.data+'T12:00:00').toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'2-digit'});
       return {plano:agendaParaPlano(r),dataKey:r.data,kicker:`Pendente de ${dt}`};
     }
 
-    let futuras=await supa(`/rest/v1/agenda_estudo?select=${campos}&concurso_id=eq.${concursoAtualId}&data=gt.${hojeKey}&status=in.(planejada,pendente,movida)&assunto_id=not.is.null&order=data.asc,ordem_no_dia.asc&limit=1`).catch(()=>[]);
+    let futuras=await supa(`/rest/v1/agenda_estudo?select=${campos}&concurso_id=eq.${concursoAtualId}&data=gt.${hojeKey}&status=in.(planejada,pendente,movida,em_andamento)&assunto_id=not.is.null&order=data.asc,ordem_no_dia.asc&limit=1`).catch(()=>[]);
     if(!futuras?.length){
       const prox=new Date(hoje); prox.setDate(prox.getDate()+7);
       await gerarAgendaSemanaSeNecessario(prox);
-      futuras=await supa(`/rest/v1/agenda_estudo?select=${campos}&concurso_id=eq.${concursoAtualId}&data=gt.${hojeKey}&status=in.(planejada,pendente,movida)&assunto_id=not.is.null&order=data.asc,ordem_no_dia.asc&limit=1`).catch(()=>[]);
+      futuras=await supa(`/rest/v1/agenda_estudo?select=${campos}&concurso_id=eq.${concursoAtualId}&data=gt.${hojeKey}&status=in.(planejada,pendente,movida,em_andamento)&assunto_id=not.is.null&order=data.asc,ordem_no_dia.asc&limit=1`).catch(()=>[]);
       await carregarAgendaSemana(hoje).catch(()=>{});
     }
     if(futuras?.[0]){
@@ -1568,23 +1599,72 @@
       else { uw.style.display=assuntoInfo?.conteudo_dinamico?'block':'none'; if(assuntoInfo?.conteudo_dinamico) document.getElementById('study-focus-update').innerHTML='<span class="study-empty">Nenhuma atualização adicional cadastrada para este assunto.</span>'; }
       const sw=document.getElementById('study-focus-sources-wrap');
       if((fontes||[]).length){ sw.style.display='block'; document.getElementById('study-focus-sources').innerHTML=fontes.map(f=>`<div style="margin-bottom:7px">${f.fonte_url?`<a href="${escapeHtml(f.fonte_url)}" target="_blank" rel="noopener"><strong>${escapeHtml(f.fonte_nome||f.titulo)}</strong></a>`:`<strong>${escapeHtml(f.fonte_nome||f.titulo)}</strong>`}<div style="font-size:12px;color:var(--text-muted);margin-top:2px">${escapeHtml(f.conteudo||'')}</div></div>`).join(''); } else sw.style.display='none';
-      document.getElementById('study-focus-practice').disabled=qtd===0;
+      configurarAcoesFoco(plano,qtd);
       montarSeletorAssuntosTrilha(plano.assuntoId);
       focus.style.display='block'; manual.style.display='none';
     }catch(e){ console.warn('Estudar agora:',e); mostrarErroEstudarAgora(e); }
   }
 
+  function configurarAcoesFoco(plano,qtd){
+    const main=document.getElementById('study-focus-main-action');
+    const label=document.getElementById('study-focus-main-label');
+    const skip=document.getElementById('study-focus-skip-theory');
+    const seq=document.getElementById('study-focus-sequence');
+    if(!main||!label||!skip||!seq) return;
+    skip.style.display='none'; main.disabled=false;
+    const atividade=plano?.atividade||'teoria_questoes';
+    const praticaPendenteStatus=atividade==='teoria_questoes' && plano?.status==='em_andamento';
+    if(atividade==='teoria_questoes'){
+      if(praticaPendenteStatus){
+        label.textContent='Praticar questões';
+        seq.innerHTML='<span class="step done"><i class="ti ti-check"></i> Teoria</span><span>→</span><span class="step active"><i class="ti ti-list-check"></i> Questões</span><span>→</span><span class="step"><i class="ti ti-chart-bar"></i> Resultado</span>';
+      }else{
+        label.textContent='Iniciar teoria';
+        seq.innerHTML='<span class="step active"><i class="ti ti-book-2"></i> Teoria</span><span>→</span><span class="step"><i class="ti ti-list-check"></i> Questões</span><span>→</span><span class="step"><i class="ti ti-chart-bar"></i> Resultado</span>';
+        if(qtd>0) skip.style.display='inline-flex';
+      }
+    }else if(atividade==='teoria' || atividade==='estudo'){
+      label.textContent='Iniciar teoria';
+      seq.innerHTML='<span class="step active"><i class="ti ti-book-2"></i> Teoria</span><span>→</span><span class="step"><i class="ti ti-check"></i> Concluir</span>';
+    }else if(atividade==='questoes'){
+      label.textContent='Praticar questões'; main.disabled=qtd===0;
+      seq.innerHTML='<span class="step active"><i class="ti ti-list-check"></i> Questões</span><span>→</span><span class="step"><i class="ti ti-chart-bar"></i> Resultado</span>';
+    }else if(atividade==='revisao'){
+      label.textContent='Iniciar revisão';
+      seq.innerHTML='<span class="step active"><i class="ti ti-refresh"></i> Revisão</span><span>→</span><span class="step"><i class="ti ti-chart-bar"></i> Resultado</span>';
+    }else{
+      label.textContent='Iniciar atividade'; seq.innerHTML='';
+    }
+  }
+
+  function acaoPrincipalFocoEstudo(){
+    const plano=studyFocusPlano; if(!plano) return;
+    if(plano.atividade==='questoes' || (plano.atividade==='teoria_questoes' && plano.status==='em_andamento')) return praticarFocoEstudo();
+    if(plano.atividade==='revisao'){ const nav=[...document.querySelectorAll('.nav-item')].find(n=>n.textContent.trim().startsWith('Revisão')); return goTo('revisao',nav); }
+    return iniciarFocoEstudo();
+  }
+
+  function pularTeoriaEPraticar(){
+    if(!confirm('Ir direto para as questões? Use esta opção se você já estudou a teoria por outra fonte.')) return;
+    const plano=studyFocusPlano;
+    if(plano?.agendaId) supa(`/rest/v1/agenda_estudo?id=eq.${plano.agendaId}`,{method:'PATCH',body:JSON.stringify({status:'em_andamento'})}).catch(()=>{});
+    praticarFocoEstudo();
+  }
+
   function iniciarFocoEstudo(){
     const plano=studyFocusPlano; if(!plano) return ocultarFocoEstudo();
-    timerMat=plano.disciplina; timerAssunto=plano.assunto||''; timerAgendaId=plano.agendaId||null; timerPlanoDataKey=studyFocusData; timerMetaOverride=Math.max(10,plano.duracao||60)*60;
+    timerMat=plano.disciplina; timerAssunto=plano.assunto||''; timerAssuntoId=plano.assuntoId||null; timerAgendaId=plano.agendaId||null; timerPlanoDataKey=studyFocusData; timerMetaOverride=Math.max(10,plano.duracao||60)*60;
     document.querySelectorAll('#disciplinas-timer .mat-btn').forEach(b=>b.classList.toggle('active',b.textContent.trim()===plano.disciplina));
     document.getElementById('input-assunto').value=timerAssunto;
+    const btnConcluir=document.getElementById('btn-concluir-teoria'); if(btnConcluir) btnConcluir.textContent=(plano.atividade==='teoria_questoes'?'Concluir teoria':'Finalizar estudo');
+    const btnSalvar=document.getElementById('btn-salvar-finalizar'); if(btnSalvar) btnSalvar.textContent=(plano.atividade==='teoria_questoes'?'Salvar teoria e continuar →':'Salvar e finalizar ✓');
     document.getElementById('study-focus').style.display='none'; document.getElementById('timer-manual-card').style.display='block'; iniciarTimer();
   }
 
   function praticarFocoEstudo(){
     const plano=studyFocusPlano; if(!plano) return;
     qAssuntoIdMapeado=plano.assuntoId||null;
+    qAgendaEncadeada=plano.agendaId||null;
     qQtd=Math.min(50,Math.max(5,Number(plano.questoes)||20));
     irParaPratica(plano.disciplina,plano.assunto||'');
     const custom=document.getElementById('q-custom'); if(custom) custom.value=qQtd;
@@ -2061,6 +2141,8 @@
 
   function irParaFinalizar() {
     clearInterval(timerInterval);
+    const btnSalvar=document.getElementById('btn-salvar-finalizar');
+    if(btnSalvar) btnSalvar.textContent=(studyFocusPlano?.atividade==='teoria_questoes'?'Salvar teoria e continuar →':'Salvar e finalizar ✓');
     // Mostra resumo da sessão
     const h=Math.floor(timerSec/3600), m=Math.floor((timerSec%3600)/60);
     document.getElementById('fin-mat').textContent    = timerMat;
@@ -2104,47 +2186,120 @@
     timerSec++;
     const h=Math.floor(timerSec/3600), m=Math.floor((timerSec%3600)/60), s=timerSec%60;
     document.getElementById('timer-display').textContent = String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
-    const p = Math.min(100, Math.round(timerSec/userMeta.metaSec*100));
+    const p = Math.min(100, Math.round(timerSec/(timerMetaOverride || userMeta.metaSec)*100));
     document.getElementById('timer-progress').style.width = p + '%';
     document.getElementById('timer-pct').textContent = p + '%';
   }
 
   function pausarTimer() { timerPaused=!timerPaused; document.getElementById('btn-pausar').textContent=timerPaused?'Retomar':'Pausar'; }
 
+  async function salvarProgressoTeoria(assuntoId,minutos){
+    const uid=currentUser?.user?.id; if(!uid||!assuntoId||!concursoAtualId||!minutos) return;
+    const agora=new Date().toISOString();
+    const [gs,ps]=await Promise.all([
+      supa(`/rest/v1/dominio_assuntos?select=*&assunto_id=eq.${assuntoId}&limit=1`).catch(()=>[]),
+      supa(`/rest/v1/progresso_assuntos?select=*&concurso_id=eq.${concursoAtualId}&assunto_id=eq.${assuntoId}&limit=1`).catch(()=>[])
+    ]);
+    const g=gs?.[0]||{}, p=ps?.[0]||{};
+    const manterStatus=x=>x==='dominado'?'dominado':x==='em_consolidacao'?'em_consolidacao':'em_estudo';
+    const grow={user_id:uid,assunto_id:Number(assuntoId),status:manterStatus(g.status),nivel_dominio:Number(g.nivel_dominio)||0,tempo_estudado_minutos:(Number(g.tempo_estudado_minutos)||0)+minutos,questoes_respondidas:Number(g.questoes_respondidas)||0,questoes_corretas:Number(g.questoes_corretas)||0,ultima_atividade_em:agora,proxima_revisao_em:g.proxima_revisao_em||null};
+    const prow={user_id:uid,concurso_id:concursoAtualId,assunto_id:Number(assuntoId),status:manterStatus(p.status),nivel_dominio:Number(grow.nivel_dominio)||0,nivel_prontidao:Number(p.nivel_prontidao)||0,tempo_estudado_minutos:(Number(p.tempo_estudado_minutos)||0)+minutos,questoes_respondidas:Number(p.questoes_respondidas)||0,questoes_corretas:Number(p.questoes_corretas)||0,questoes_alvo_respondidas:Number(p.questoes_alvo_respondidas)||0,questoes_alvo_corretas:Number(p.questoes_alvo_corretas)||0,ultima_atividade_em:agora,proxima_revisao_em:p.proxima_revisao_em||null};
+    await Promise.all([
+      supa('/rest/v1/dominio_assuntos?on_conflict=user_id,assunto_id',{method:'POST',headers:{'Prefer':'resolution=merge-duplicates,return=representation'},body:JSON.stringify(grow)}),
+      supa('/rest/v1/progresso_assuntos?on_conflict=user_id,concurso_id,assunto_id',{method:'POST',headers:{'Prefer':'resolution=merge-duplicates,return=representation'},body:JSON.stringify(prow)})
+    ]);
+  }
+
   async function confirmarFinalizar() {
+    const plano=studyFocusPlano;
+    const atividade=plano?.atividade||'teoria';
+    const precisaPratica=atividade==='teoria_questoes' && !!(timerAssuntoId||plano?.assuntoId);
+    const agendaIdAntes=timerAgendaId;
+    const assuntoIdAntes=timerAssuntoId||plano?.assuntoId||null;
+    const planoDataAntes=timerPlanoDataKey;
+    const materiaAntes=timerMat;
+    const assuntoAntes=timerAssunto;
+    const minutos=Math.max(1,Math.round(timerSec/60));
     const streak = await calcularStreak();
-    const conteudoFinal = null;
-    try { await carregarConcursoAtual(); await supa('/rest/v1/sessoes_estudo', { method:'POST', body: JSON.stringify({ user_id: currentUser.user.id, concurso_id: concursoAtualId, tipo_atividade:'teoria', status:'concluida', finalizado_em:new Date().toISOString(), duracao_real_minutos:Math.max(1,Math.round(timerSec/60)), estado:{disciplina:timerMat,assunto:timerAssunto||null,anotacoes:(document.getElementById('resumo-finalizar')?.value||''),streak} }) }); }
-    catch(e) { console.error('Erro ao salvar sessão:', e); }
-    sessaoAtual = { materia: timerMat, assunto: timerAssunto, conteudoExtra: conteudoFinal };
-    if (timerAgendaId) { try { await supa(`/rest/v1/agenda_estudo?id=eq.${timerAgendaId}`,{method:'PATCH',body:JSON.stringify({status:'concluida'})}); await carregarAgendaSemana(new Date()); } catch(e){ console.warn('Agenda não atualizada:',e); } }
-    if (timerPlanoDataKey) { userMeta.statusPlano = userMeta.statusPlano || {}; userMeta.statusPlano[timerPlanoDataKey] = 'recuperada'; salvarUserMeta(); }
-    timerMetaOverride = null; timerPlanoDataKey = null; timerAgendaId = null;
+    try {
+      await carregarConcursoAtual();
+      const sessRows=await supa('/rest/v1/sessoes_estudo', { method:'POST', body: JSON.stringify({
+        user_id: currentUser.user.id, agenda_id:agendaIdAntes||null, concurso_id: concursoAtualId, assunto_id:assuntoIdAntes,
+        tipo_atividade:'teoria', status:'concluida', finalizado_em:new Date().toISOString(),
+        duracao_planejada_minutos:plano?.duracao||null, duracao_real_minutos:minutos,
+        estado:{disciplina:materiaAntes,assunto:assuntoAntes||null,anotacoes:(document.getElementById('resumo-finalizar')?.value||''),streak,etapa:'teoria'}
+      }) });
+      sessaoAtual = { id:sessRows?.[0]?.id||null, materia:materiaAntes, assunto:assuntoAntes, assuntoId:assuntoIdAntes, conteudoExtra:null };
+      if(assuntoIdAntes) await salvarProgressoTeoria(assuntoIdAntes,minutos);
+    } catch(e) { console.error('Erro ao salvar sessão:', e); alert('Não foi possível salvar a sessão. Tente novamente.'); return; }
+
+    if (agendaIdAntes) {
+      try {
+        await supa(`/rest/v1/agenda_estudo?id=eq.${agendaIdAntes}`,{method:'PATCH',body:JSON.stringify({status:precisaPratica?'em_andamento':'concluida'})});
+        await carregarAgendaSemana(new Date());
+      } catch(e){ console.warn('Agenda não atualizada:',e); }
+    }
+    if (planoDataAntes && !precisaPratica) { userMeta.statusPlano = userMeta.statusPlano || {}; userMeta.statusPlano[planoDataAntes] = 'recuperada'; salvarUserMeta(); }
+
     const h=Math.floor(timerSec/3600), m=Math.floor((timerSec%3600)/60);
-    // Reset completo
-    timerMat = ''; timerAssunto = ''; conteudoExtra = { tipo: null };
+    praticaPendente = precisaPratica ? {
+      disciplina:materiaAntes, assunto:assuntoAntes, assuntoId:assuntoIdAntes,
+      agendaId:agendaIdAntes, questoes:Math.min(50,Math.max(5,Number(plano?.questoes)||20)),
+      planoDataKey:planoDataAntes
+    } : null;
+
+    clearInterval(timerInterval);
+    timerSec=0; timerPaused=false; timerMat=''; timerAssunto=''; timerAssuntoId=null;
+    timerMetaOverride=null; timerPlanoDataKey=null; timerAgendaId=null; conteudoExtra={tipo:null};
     document.querySelectorAll('#disciplinas-timer .mat-btn').forEach(b=>b.classList.remove('active'));
     ['input-assunto','resumo-durante','resumo-finalizar'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
     ['img-durante','pdf-durante'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
     ['prev-img-dur','prev-pdf-dur'].forEach(id=>{ const el=document.getElementById(id); if(el) el.style.display='none'; });
-    document.getElementById('timer-step3').style.display = 'none';
-    document.getElementById('timer-step1').style.display = 'block';
-    alert(`Estudo registrado!
+    document.getElementById('timer-step3').style.display='none';
 
-Disciplina: ${sessaoAtual.materia}
-Assunto: ${sessaoAtual.assunto||'—'}
-Tempo: ${h}h ${String(m).padStart(2,'0')}min
+    if(precisaPratica){
+      const txt=document.getElementById('post-theory-text');
+      if(txt) txt.textContent=`${h}h ${String(m).padStart(2,'0')}min de teoria registrados em ${assuntoAntes}. Agora consolide com ${praticaPendente.questoes} questões mapeadas.`;
+      const lab=document.getElementById('post-theory-practice-label'); if(lab) lab.textContent=`Praticar ${praticaPendente.questoes} questões`;
+      document.getElementById('timer-step1').style.display='none';
+      document.getElementById('timer-step4').style.display='block';
+    }else{
+      document.getElementById('timer-step4').style.display='none';
+      document.getElementById('timer-step1').style.display='block';
+      alert(`Teoria registrada!\n\nDisciplina: ${materiaAntes}\nAssunto: ${assuntoAntes||'—'}\nTempo: ${h}h ${String(m).padStart(2,'0')}min`);
+      studyFocusOverride=null; studyFocusPlano=null;
+    }
+  }
 
-Vá para "Questões" para praticar!`);
+  function iniciarPraticaPosTeoria(){
+    const p=praticaPendente; if(!p) return;
+    qAssuntoIdMapeado=p.assuntoId||null; qAgendaEncadeada=p.agendaId||null; qQtd=p.questoes||10;
+    sessaoAtual={...(sessaoAtual||{}),materia:p.disciplina,assunto:p.assunto,assuntoId:p.assuntoId};
+    document.getElementById('timer-step4').style.display='none';
+    irParaPratica(p.disciplina,p.assunto||'');
+    const custom=document.getElementById('q-custom'); if(custom) custom.value=qQtd;
+    setTimeout(()=>iniciarQuestoes(),80);
+  }
+
+  async function continuarPraticaDepois(){
+    const p=praticaPendente;
+    if(p?.agendaId){ try{ await supa(`/rest/v1/agenda_estudo?id=eq.${p.agendaId}`,{method:'PATCH',body:JSON.stringify({status:'em_andamento'})}); }catch(e){console.warn(e);} }
+    praticaPendente=null;
+    document.getElementById('timer-step4').style.display='none';
+    document.getElementById('timer-step1').style.display='block';
+    studyFocusOverride=null; studyFocusPlano=null;
+    const nav=[...document.querySelectorAll('.nav-item')].find(n=>n.textContent.trim().startsWith('Início'));
+    goTo('dashboard',nav);
   }
 
   function descartarSessaoAtual() {
     if (!confirm('Descartar esta sessão sem salvar?')) return;
     clearInterval(timerInterval);
-    timerSec=0; timerPaused=false; timerMat=''; timerAssunto=''; timerMetaOverride=null; timerPlanoDataKey=null; timerAgendaId=null; conteudoExtra=null;
+    timerSec=0; timerPaused=false; timerMat=''; timerAssunto=''; timerAssuntoId=null; timerMetaOverride=null; timerPlanoDataKey=null; timerAgendaId=null; conteudoExtra=null;
     ['input-assunto','resumo-durante','resumo-finalizar'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
     document.querySelectorAll('#disciplinas-timer .mat-btn').forEach(b=>b.classList.remove('active'));
     document.getElementById('timer-step3').style.display='none';
+    document.getElementById('timer-step4').style.display='none';
     document.getElementById('timer-step2').style.display='none';
     document.getElementById('timer-step1').style.display='block';
     document.getElementById('timer-display').textContent='00:00:00';
@@ -2388,12 +2543,25 @@ Vá para "Questões" para praticar!`);
     document.getElementById('fin-pct').textContent     = pct + '%';
     document.getElementById('fin-total').textContent   = total;
     try { await salvarResultadosPorAssunto(qSessaoRespostas); } catch(e) { console.error(e); }
+    try {
+      await carregarConcursoAtual();
+      await supa('/rest/v1/sessoes_estudo',{method:'POST',body:JSON.stringify({
+        user_id:currentUser.user.id, agenda_id:qAgendaEncadeada||null, concurso_id:concursoAtualId, assunto_id:qAssuntoIdMapeado||null,
+        tipo_atividade:'questoes', status:'concluida', finalizado_em:new Date().toISOString(),
+        questoes_planejadas:qQtd||total, questoes_respondidas:total,
+        estado:{disciplina:qMat,acertos:qAcertos,erros:qErros,percentual:pct,etapa:'questoes'}
+      })});
+    } catch(e){ console.warn('Sessão de questões não registrada:',e); }
+    if(qAgendaEncadeada){
+      try { await supa(`/rest/v1/agenda_estudo?id=eq.${qAgendaEncadeada}`,{method:'PATCH',body:JSON.stringify({status:'concluida'})}); await carregarAgendaSemana(new Date()); } catch(e){ console.warn('Agenda não concluída após prática:',e); }
+      qAgendaEncadeada=null; praticaPendente=null; studyFocusOverride=null; studyFocusPlano=null;
+    }
     const aiTxt = pct>=80 ? `Excelente! ${pct}% de acerto. Continue!` : pct>=60 ? `${pct}% de acerto. Revise os erros para melhorar.` : `${pct}% de acerto. Recomendo rever o conteúdo antes de continuar.`;
     document.getElementById('fin-ai-msg').innerHTML = `<div class="ai-header"><i class="ti ti-chart-bar"></i> Diagnóstico da prática</div><div class="ai-msg">${aiTxt}</div>`;
     renderResumoSessao('q-final-breakdown', qSessaoRespostas);
   }
 
-  function voltarSelect() { document.getElementById('q-final').style.display='none'; document.getElementById('q-quiz').style.display='none'; document.getElementById('q-select').style.display='block'; restaurarConstrutorQuestoes(); }
+  function voltarSelect() { qAgendaEncadeada=null; document.getElementById('q-final').style.display='none'; document.getElementById('q-quiz').style.display='none'; document.getElementById('q-select').style.display='block'; restaurarConstrutorQuestoes(); }
 
 
 
