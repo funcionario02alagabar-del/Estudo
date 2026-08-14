@@ -504,7 +504,7 @@
 
 
     /* ========================================================
-       MD TRILHA v1.13 — SIMULADO + POLIMENTO FINAL
+       MD TRILHA — VERSÃO FINAL DE LANÇAMENTO
        ======================================================== */
     .sidebar-tagline{font-size:9px;color:rgba(255,255,255,.38);padding:0 18px 12px;letter-spacing:.2px}
     .simulado-nav{position:relative}.simulado-nav:after{content:'NOVO';margin-left:auto;font-size:8px;font-weight:800;letter-spacing:.5px;padding:2px 5px;border-radius:999px;background:rgba(228,123,37,.18);color:#ffb16f;border:1px solid rgba(228,123,37,.24)}
@@ -2216,18 +2216,18 @@
 
   async function coletarConteudoExtra() {
     // Resumo em texto
-    const resumo = document.getElementById('input-resumo').value.trim();
+    const resumo = document.getElementById('input-resumo')?.value?.trim() || '';
     if (resumo) return { tipo: 'texto', texto: resumo };
 
     // Imagem
-    const imgFile = document.getElementById('input-imagem').files[0];
+    const imgFile = document.getElementById('input-imagem')?.files?.[0];
     if (imgFile) {
       const b64 = await fileToBase64(imgFile);
       return { tipo: 'imagem', base64: b64, mimeType: imgFile.type };
     }
 
     // PDF
-    const pdfFile = document.getElementById('input-pdf').files[0];
+    const pdfFile = document.getElementById('input-pdf')?.files?.[0];
     if (pdfFile) {
       const b64 = await fileToBase64(pdfFile);
       return { tipo: 'pdf', base64: b64, mimeType: 'application/pdf' };
@@ -2736,8 +2736,15 @@
     if(qtd<=0) return [];
     const rows=await supa(`/rest/v1/banco_questoes?select=*&disciplina=eq.${encodeURIComponent(disciplina)}`,{headers:{'Range':'0-4999'}});
     const validas=aplicarFiltrosQuestoes(rows||[],{origem:'oficial'}).filter(q=>q.oficial===true);
-    const recentes=embaralhar(validas.filter(q=>Number(q.ano||0)>=2016));
-    const historicas=embaralhar(validas.filter(q=>Number(q.ano||0)<2016));
+    // Evita enunciados-padrão repetidos no mesmo simulado, mesmo quando vierem de provas diferentes.
+    const vistos=new Set();
+    const unicas=validas.filter(q=>{
+      const k=normalizarTextoFiltro(q.enunciado||'').replace(/\s+/g,' ');
+      if(!k || vistos.has(k)) return false;
+      vistos.add(k); return true;
+    });
+    const recentes=embaralhar(unicas.filter(q=>Number(q.ano||0)>=2016));
+    const historicas=embaralhar(unicas.filter(q=>Number(q.ano||0)<2016));
     return [...recentes,...historicas].slice(0,qtd);
   }
 
