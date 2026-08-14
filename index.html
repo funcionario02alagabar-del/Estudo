@@ -1340,8 +1340,14 @@
     let idx = trilhaAtual.findIndex(t => (planejado[t.assunto_id]||0) < (Number(t.carga_estimada_minutos)||60));
     if (idx < 0) idx = 0;
     const ini = inicioSemanaLocal(ref), rows=[];
+    const hojeKey = dataLocalKey(new Date());
     for (let off=0; off<7; off++) {
       const data = new Date(ini); data.setDate(ini.getDate()+off);
+
+      // Não criar atividades retroativas quando a agenda nasce no meio da semana.
+      // Um usuário novo/resetado começa a contar a partir de hoje.
+      if (dataLocalKey(data) < hojeKey) continue;
+
       const disp = disponibilidadeParaData(data);
       if (!disp?.disponivel || Number(disp.minutos_disponiveis)<=0) continue;
       let bloco = trilhaAtual[idx];
@@ -1557,6 +1563,7 @@
     document.getElementById('sidebar-user').textContent = perfilAtual?.nome || email;
     const sc=document.getElementById('sidebar-concurso'); if(sc) sc.textContent='Foco: '+nomeConcursoAtual();
     buildDisciplinas();
+    migrarResetProgressoLocal();
     carregarConfig();
     aplicarDisponibilidadeAoMeta();
     renderConfig();
@@ -1863,6 +1870,33 @@
     return 'concurso_respostas_' + (currentUser?.user?.id || currentUser?.user?.email || 'local');
   }
 
+  // Migração única de 14/08/2026: remove somente caches locais de progresso legado.
+  // Perfil, concurso, rotina e disponibilidade continuam preservados no Supabase.
+  function migrarResetProgressoLocal() {
+    const uid = currentUser?.user?.id;
+    if (!uid) return;
+    const marker = 'md_trilha_reset_20260814_' + uid;
+    if (localStorage.getItem(marker) === '1') return;
+
+    localStorage.removeItem('concurso_respostas_' + uid);
+
+    const cfgKey = 'concurso_cfg_' + uid;
+    try {
+      const cfg = JSON.parse(localStorage.getItem(cfgKey) || 'null');
+      if (cfg && typeof cfg === 'object') {
+        // Remove somente estruturas legadas capazes de recriar progresso/pendências antigas.
+        cfg.cronograma = {};
+        cfg.excecoesPlano = {};
+        cfg.statusPlano = {};
+        localStorage.setItem(cfgKey, JSON.stringify(cfg));
+      }
+    } catch(e) {
+      console.warn('Não foi possível limpar configuração local legada:', e);
+    }
+
+    localStorage.setItem(marker, '1');
+  }
+
   function carregarRespostasLocais() {
     try { return JSON.parse(localStorage.getItem(respostaStorageKey()) || '[]'); } catch(e) { return []; }
   }
@@ -2104,7 +2138,10 @@
       path += '&order=respondida_em.desc';
       const rr=await supa(path,{headers:{'Range':'0-4999'}});
       const det=(rr||[]).map(r=>({disciplina:r.banco_questoes?.disciplina,assunto:r.banco_questoes?.assunto,acertou:!!r.correta,respondido_em:r.respondida_em}));
-      if(det.length) return agregarRespostasDetalhadas(det);
+
+      // Retorno remoto vazio é um resultado válido: significa zero respostas.
+      // Só usamos o cache local se a consulta ao Supabase realmente falhar.
+      return agregarRespostasDetalhadas(det);
     } catch(e) { console.warn('Resultados remotos indisponíveis; usando cache local.',e); }
     let det=carregarRespostasLocais();
     if(inicio) det=det.filter(r=>String(r.respondido_em||'')>=inicio+'T00:00:00');
