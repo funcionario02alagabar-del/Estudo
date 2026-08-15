@@ -541,6 +541,7 @@
     }
 
 </style>
+  <!-- MD Trilha v1.4: acesso privado; cadastro público removido -->
 </head>
 <body>
 
@@ -552,22 +553,12 @@
       <div class="auth-logo-title">MD Trilha</div>
       <div class="auth-logo-sub">Seu caminho até a aprovação.</div>
     </div>
-    <div class="auth-tabs">
-      <div class="auth-tab active" id="tab-login" onclick="switchTab('login')">Entrar</div>
-      <div class="auth-tab" id="tab-cadastro" onclick="switchTab('cadastro')">Cadastrar</div>
-    </div>
+    <div style="text-align:center;font-size:12px;color:var(--text-muted);margin:-8px 0 22px">Acesso privado · somente usuários autorizados</div>
     <div id="form-login">
-      <div class="form-group"><label class="form-label">Email</label><input class="form-input" type="email" id="login-email" placeholder="seu@email.com"></div>
-      <div class="form-group"><label class="form-label">Senha</label><input class="form-input" type="password" id="login-senha" placeholder="••••••••" onkeydown="if(event.key==='Enter')fazerLogin()"></div>
+      <div class="form-group"><label class="form-label">Email</label><input class="form-input" type="email" id="login-email" placeholder="seu@email.com" autocomplete="username" autocapitalize="none" spellcheck="false"></div>
+      <div class="form-group"><label class="form-label">Senha</label><input class="form-input" type="password" id="login-senha" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')fazerLogin()"></div>
       <button class="auth-btn" onclick="fazerLogin()">Entrar</button>
       <div id="login-msg" class="auth-msg"></div>
-    </div>
-    <div id="form-cadastro" style="display:none">
-      <div class="form-group"><label class="form-label">Nome</label><input class="form-input" type="text" id="cad-nome" placeholder="Seu nome"></div>
-      <div class="form-group"><label class="form-label">Email</label><input class="form-input" type="email" id="cad-email" placeholder="seu@email.com"></div>
-      <div class="form-group"><label class="form-label">Senha</label><input class="form-input" type="password" id="cad-senha" placeholder="mínimo 6 caracteres"></div>
-      <button class="auth-btn" onclick="fazerCadastro()">Criar conta</button>
-      <div id="cad-msg" class="auth-msg"></div>
     </div>
   </div>
 </div>
@@ -1526,13 +1517,6 @@
   }
 
   // ─── AUTH ─────────────────────────────────────────────────
-  function switchTab(tab) {
-    document.getElementById('tab-login').classList.toggle('active', tab === 'login');
-    document.getElementById('tab-cadastro').classList.toggle('active', tab === 'cadastro');
-    document.getElementById('form-login').style.display    = tab === 'login'    ? 'block' : 'none';
-    document.getElementById('form-cadastro').style.display = tab === 'cadastro' ? 'block' : 'none';
-  }
-
   async function fazerLogin() {
     const email = document.getElementById('login-email').value.trim();
     const senha = document.getElementById('login-senha').value;
@@ -1543,19 +1527,6 @@
       salvarSessaoAuth(data);
       await prepararEntradaApp();
     } catch(e) { msg.textContent = 'Email ou senha incorretos.'; msg.className = 'auth-msg erro'; }
-  }
-
-  async function fazerCadastro() {
-    const nome  = document.getElementById('cad-nome').value.trim();
-    const email = document.getElementById('cad-email').value.trim();
-    const senha = document.getElementById('cad-senha').value;
-    const msg   = document.getElementById('cad-msg');
-    msg.className = 'auth-msg'; msg.style.display = 'none';
-    if (!nome || !email || senha.length < 6) { msg.textContent = 'Preencha todos os campos (senha mínimo 6 caracteres).'; msg.className = 'auth-msg erro'; return; }
-    try {
-      await supaAuth('/signup', { email, password: senha, data: { nome } });
-      msg.textContent = '✓ Conta criada! Verifique seu email para confirmar e depois entre.'; msg.className = 'auth-msg ok';
-    } catch(e) { msg.textContent = e.message; msg.className = 'auth-msg erro'; }
   }
 
   async function fazerLogout() {
