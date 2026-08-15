@@ -541,7 +541,7 @@
     }
 
 </style>
-  <!-- MD Trilha v1.7: acesso privado + saída segura do onboarding + validação de sessão Auth -->
+  <!-- MD Trilha v1.8: rotina e plano semanal vinculados + sincronização bidirecional do tempo -->
 </head>
 <body>
 
@@ -1108,7 +1108,7 @@
           <div class="card plan-card"><div class="card-title">Esta semana</div><div id="cronograma-list"><div class="loading-spin">Carregando...</div></div></div>
           <div class="card plan-editor-card" id="plan-editor" style="display:none">
             <div class="card-title">Editar trilha semanal</div>
-            <div class="plan-editor-help">Escolha “Livre” para dias de descanso. Nos dias automáticos, o tempo pode ser dividido em vários assuntos da mesma disciplina para aproveitar toda a carga disponível.</div>
+            <div class="plan-editor-help">Escolha “Livre” para dias de descanso. <strong>O tempo é vinculado à sua rotina:</strong> alterar os minutos aqui também atualiza a rotina daquele dia. Nos dias automáticos, o tempo pode ser dividido em vários assuntos da mesma disciplina para aproveitar toda a carga disponível.</div>
             <div id="cfg-cronograma"></div>
             <div class="plan-editor-actions"><button class="btn" onclick="togglePlanEditor()">Cancelar</button><button class="btn btn-primary" onclick="salvarCronograma()">Salvar plano</button></div>
           </div>
@@ -1524,10 +1524,79 @@
     return carregarAgendaSemana(ref);
   }
 
+  async function sincronizarAgendaManualComRotina() {
+    const hoje = dataLocalKey(new Date());
+    let manuais = [];
+    try {
+      manuais = await supa(`/rest/v1/agenda_estudo?select=id,data,duracao_planejada_minutos,questoes_planejadas,ordem_no_dia,status&data=gte.${hoje}&gerado_automaticamente=eq.false&status=in.(planejada,pendente,movida)&order=data.asc,ordem_no_dia.asc`);
+    } catch(e) {
+      console.warn('Não foi possível consultar blocos manuais para sincronizar a rotina:', e);
+      return;
+    }
+
+    const porData = {};
+    (manuais||[]).forEach(r => (porData[r.data] ||= []).push(r));
+
+    for (const [dataKey, blocosOriginais] of Object.entries(porData)) {
+      const data = new Date(dataKey + 'T12:00:00');
+      const disp = disponibilidadeParaData(data);
+      const blocos = blocosOriginais.slice().sort((a,b)=>Number(a.ordem_no_dia||1)-Number(b.ordem_no_dia||1));
+
+      if (!disp?.disponivel || Number(disp.minutos_disponiveis)<=0) {
+        try {
+          await supa(`/rest/v1/agenda_estudo?data=eq.${dataKey}&gerado_automaticamente=eq.false&status=in.(planejada,pendente,movida)`,{method:'DELETE',headers:{'Prefer':'return=minimal'}});
+        } catch(e) { console.warn('Não foi possível remover plano manual de dia indisponível:', e); }
+        continue;
+      }
+
+      const alvo = Math.max(10, Number(disp.minutos_disponiveis)||60);
+      const duracoes = blocos.map(r => Math.max(0, Number(r.duracao_planejada_minutos)||0));
+      let total = duracoes.reduce((a,b)=>a+b,0);
+
+      if (!blocos.length) continue;
+      if (total <= 0) { duracoes[0] = alvo; total = alvo; }
+
+      if (alvo > total) {
+        duracoes[duracoes.length-1] += (alvo-total);
+      } else if (alvo < total) {
+        let cortar = total-alvo;
+        for (let i=duracoes.length-1; i>=0 && cortar>0; i--) {
+          const tira = Math.min(duracoes[i], cortar);
+          duracoes[i] -= tira;
+          cortar -= tira;
+        }
+      }
+
+      for (let i=0; i<blocos.length; i++) {
+        const r = blocos[i], dur = Math.round(duracoes[i]);
+        try {
+          if (dur <= 0) {
+            await supa(`/rest/v1/agenda_estudo?id=eq.${r.id}`,{method:'DELETE',headers:{'Prefer':'return=minimal'}});
+          } else if (dur !== Number(r.duracao_planejada_minutos||0)) {
+            await supa(`/rest/v1/agenda_estudo?id=eq.${r.id}`,{
+              method:'PATCH',
+              body:JSON.stringify({
+                duracao_planejada_minutos:dur,
+                questoes_planejadas:dur<=60?10:dur<=90?15:20
+              })
+            });
+          }
+        } catch(e) { console.warn('Não foi possível sincronizar duração de bloco manual:', e); }
+      }
+    }
+  }
+
   async function recalcularAgendaFutura() {
     const hoje=dataLocalKey(new Date());
+
+    // A rotina é a fonte de verdade do tempo. Blocos manuais futuros mantêm a escolha
+    // de matéria/assunto, mas sua carga é ajustada para o tempo configurado na rotina.
+    await sincronizarAgendaManualComRotina();
+
     try {
-      await supa(`/rest/v1/agenda_estudo?data=gte.${hoje}&gerado_automaticamente=eq.true`,{method:'DELETE',headers:{'Prefer':'return=minimal'}});
+      // Preserva o que já foi concluído ou está em andamento e recalcula apenas o que ainda
+      // não começou.
+      await supa(`/rest/v1/agenda_estudo?data=gte.${hoje}&gerado_automaticamente=eq.true&status=in.(planejada,pendente,movida)`,{method:'DELETE',headers:{'Prefer':'return=minimal'}});
     } catch(e) { console.warn('Não foi possível limpar a agenda futura:', e); }
     agendaSemanaAtual=[]; semanaAgendaKey='';
     await gerarAgendaSemanaSeNecessario(new Date());
@@ -2235,10 +2304,23 @@
     if (remotos.length) return remotos.map(agendaParaPlano);
 
     const disp = disponibilidadeParaData(data);
-    if (disp && (!disp.disponivel || Number(disp.minutos_disponiveis)<=0)) return [{ disciplina:'Livre', assunto:'', atividade:'livre', duracao:0, questoes:0, status:'livre' }];
+    if (disp && (!disp.disponivel || Number(disp.minutos_disponiveis)<=0)) {
+      return [{ disciplina:'Livre', assunto:'', atividade:'livre', duracao:0, questoes:0, status:'livre' }];
+    }
+
+    const aplicarTempoDaRotina = plano => {
+      const p = normalizarPlanoDia(plano);
+      if (p.disciplina !== 'Livre' && disp?.disponivel) {
+        const minutos = Math.max(10, Number(disp.minutos_disponiveis) || Number(p.duracao) || 60);
+        p.duracao = minutos;
+        if (p.atividade !== 'teoria') p.questoes = minutos<=60 ? 10 : minutos<=90 ? 15 : 20;
+      }
+      return p;
+    };
+
     const excecao = userMeta.excecoesPlano?.[chave];
-    if (excecao) return [normalizarPlanoDia(excecao)];
-    return [normalizarPlanoDia(userMeta.cronograma?.[diaNomeDaData(data)])];
+    if (excecao) return [aplicarTempoDaRotina(excecao)];
+    return [aplicarTempoDaRotina(userMeta.cronograma?.[diaNomeDaData(data)])];
   }
 
   function planoParaData(data) {
@@ -3338,7 +3420,10 @@
     ];
     c.innerHTML = DIAS_SEMANA.map(dia => {
       const data=dataDaSemana(dia,new Date()), planosDia=planosParaData(data), p=planoParaData(data);
-      const duracaoDia = planosDia.filter(x=>x.disciplina!=='Livre').reduce((a,x)=>a+(Number(x.duracao)||0),0) || p.duracao || 60;
+      const dispDia = disponibilidadeParaData(data);
+      const tempoRotina = dispDia?.disponivel ? Number(dispDia.minutos_disponiveis)||0 : 0;
+      const tempoAgenda = planosDia.filter(x=>x.disciplina!=='Livre').reduce((a,x)=>a+(Number(x.duracao)||0),0);
+      const duracaoDia = tempoRotina || tempoAgenda || p.duracao || 60;
       const assuntoEditor = (p.geradoAutomaticamente || planosDia.length>1) ? '' : (p.assunto||'');
       const optsDisc = disciplinas.map(o=>`<option value="${escapeHtml(String(o.id||''))}" data-nome="${escapeHtml(o.nome)}"${o.nome===p.disciplina?' selected':''}>${escapeHtml(o.nome)}</option>`).join('');
       const optsAtiv = atividades.map(([v,l])=>`<option value="${v}"${v===p.atividade?' selected':''}>${l}</option>`).join('');
@@ -3498,7 +3583,7 @@
   async function salvarCronograma() {
     try {
       await carregarBaseEstudoRemota();
-      const uid=currentUser.user.id, rows=[];
+      const uid=currentUser.user.id, rows=[], rotinaRows=[];
       const ini=inicioSemanaLocal(new Date()), fim=new Date(ini); fim.setDate(fim.getDate()+7);
 
       // Para manter a sequência correta após uma edição manual do plano, consideramos
@@ -3513,13 +3598,22 @@
         const discSel=document.getElementById('cfg-dia-'+dia);
         const disciplina=discSel?.selectedOptions?.[0]?.dataset?.nome || 'Livre';
         userMeta.cronograma[dia]=disciplina;
-        if(disciplina==='Livre') return;
+        const diaSemana = data.getDay();
+        const dispAtual = disponibilidadeAtual.find(d=>Number(d.dia_semana)===diaSemana);
+        if(disciplina==='Livre') {
+          rotinaRows.push({
+            user_id:uid, dia_semana:diaSemana, disponivel:false,
+            minutos_disponiveis:Number(dispAtual?.minutos_disponiveis)||60
+          });
+          return;
+        }
 
         const disciplinaId=Number(discSel?.value)||disciplinasRemotas.find(d=>d.nome===disciplina)?.id||null;
         const assunto=(document.getElementById('cfg-assunto-'+dia)?.value.trim() || '');
         const atividade=document.getElementById('cfg-atividade-'+dia)?.value || 'teoria_questoes';
-        const duracaoTotal=Math.max(10,Number(document.getElementById('cfg-duracao-'+dia)?.value)||60);
+        const duracaoTotal=Math.max(10,Number(document.getElementById('cfg-duracao-'+dia)?.value)||Number(dispAtual?.minutos_disponiveis)||60);
         const questoesBase=atividade==='teoria'?0:(Number(document.getElementById('cfg-questoes-'+dia)?.value)||20);
+        rotinaRows.push({user_id:uid,dia_semana:diaSemana,disponivel:true,minutos_disponiveis:duracaoTotal});
 
         // Se o usuário informou um assunto específico ou escolheu uma atividade que não
         // é a trilha normal, preservamos um único bloco manual.
@@ -3557,6 +3651,18 @@
       });
 
       salvarUserMeta();
+
+      // Plano semanal e rotina usam a mesma fonte de tempo. Se o usuário alterar o tempo
+      // no editor do plano, a rotina daquele dia também é atualizada.
+      if(rotinaRows.length) {
+        await supa('/rest/v1/disponibilidade_usuario?on_conflict=user_id,dia_semana',{
+          method:'POST',
+          headers:{'Prefer':'resolution=merge-duplicates,return=representation'},
+          body:JSON.stringify(rotinaRows)
+        });
+        await carregarPerfilRemoto();
+      }
+
       await supa(`/rest/v1/agenda_estudo?data=gte.${dataLocalKey(ini)}&data=lt.${dataLocalKey(fim)}`,{method:'DELETE',headers:{'Prefer':'return=minimal'}});
       if(rows.length) await supa('/rest/v1/agenda_estudo?on_conflict=user_id,data,ordem_no_dia',{method:'POST',headers:{'Prefer':'resolution=merge-duplicates,return=representation'},body:JSON.stringify(rows)});
       await carregarAgendaSemana(new Date());
