@@ -1099,7 +1099,7 @@
       <!-- PLANO SEMANAL -->
       <div class="page" id="page-cronograma">
         <div class="page-heading plan-heading">
-          <div><span class="eyebrow">Plano semanal</span><h2>Organize sua próxima etapa</h2><p>A trilha é gerada pela sua disponibilidade e pode ser ajustada manualmente. Se um dia não for cumprido, a tarefa fica pendente até você decidir o que fazer.</p></div>
+          <div><span class="eyebrow">Plano semanal</span><h2>Organize sua próxima etapa</h2><p>A trilha é gerada pela sua disponibilidade e pelas disciplinas do concurso escolhido. Ao editar, você verá somente matérias que fazem parte do seu foco atual. Se um dia não for cumprido, a tarefa fica pendente até você decidir o que fazer.</p></div>
           <button class="btn btn-primary" onclick="togglePlanEditor()"><i class="ti ti-pencil"></i> Editar plano</button>
         </div>
         <div id="plan-summary" class="plan-summary"></div>
@@ -1185,7 +1185,7 @@
   const SESSION_KEY = 'md_trilha_supabase_session';
   let userMeta     = {
     metaSec: 3600,
-    cronograma: { Segunda:'Conhecimentos Bancários', Terça:'Vendas e Negociação', Quarta:'Informática', Quinta:'Português', Sexta:'Revisão e Questões', Sábado:'Livre', Domingo:'Livre' }
+    cronograma: { Segunda:'Conhecimentos Bancários', Terça:'Português', Quarta:'Conhecimentos Bancários', Quinta:'Matemática', Sexta:'Conhecimentos Bancários', Sábado:'Livre', Domingo:'Livre' }
   };
 
   let timerInterval = null, timerSec = 0, timerPaused = false, timerMat = '', timerAssunto = '', timerAssuntoId = null, timerMetaOverride = null, timerPlanoDataKey = null, timerAgendaId = null;
@@ -1296,6 +1296,71 @@
       disciplinaId: t.assuntos?.disciplina_id || null,
       disciplina: t.assuntos?.disciplinas?.nome || 'Conhecimentos Bancários'
     }));
+    sanearCronogramaParaConcurso();
+  }
+
+  function disciplinasDoConcursoAtual() {
+    const vistos = new Set(), lista = [];
+    (trilhaAtual || []).forEach(t => {
+      const nome = String(t.disciplina || '').trim();
+      if (!nome || vistos.has(nome)) return;
+      vistos.add(nome);
+      lista.push({ id:Number(t.disciplinaId)||null, nome });
+    });
+    return lista;
+  }
+
+  function cronogramaPadraoDoConcurso() {
+    const nomes = disciplinasDoConcursoAtual().map(d => d.nome);
+    const tem = nome => nomes.includes(nome);
+    const primeiro = nomes[0] || 'Livre';
+    if (concursoAtual?.slug === 'bnb') {
+      return {
+        Segunda: tem('Conhecimentos Bancários') ? 'Conhecimentos Bancários' : primeiro,
+        Terça: tem('Português') ? 'Português' : primeiro,
+        Quarta: tem('Conhecimentos Bancários') ? 'Conhecimentos Bancários' : primeiro,
+        Quinta: tem('Matemática') ? 'Matemática' : primeiro,
+        Sexta: tem('Conhecimentos Bancários') ? 'Conhecimentos Bancários' : primeiro,
+        Sábado:'Livre', Domingo:'Livre'
+      };
+    }
+    const dias = ['Segunda','Terça','Quarta','Quinta','Sexta'];
+    const plano = { Sábado:'Livre', Domingo:'Livre' };
+    dias.forEach((dia,i)=>{ plano[dia] = nomes.length ? nomes[i % nomes.length] : 'Livre'; });
+    return plano;
+  }
+
+  function sanearCronogramaParaConcurso() {
+    const permitidas = new Set(disciplinasDoConcursoAtual().map(d => d.nome));
+    if (!permitidas.size) return;
+    const padrao = cronogramaPadraoDoConcurso();
+    userMeta.cronograma = userMeta.cronograma || {};
+    let mudou = false;
+    DIAS_SEMANA.forEach(dia => {
+      const atual = userMeta.cronograma[dia];
+      if (!atual || (atual !== 'Livre' && !permitidas.has(typeof atual === 'string' ? atual : atual?.disciplina))) {
+        userMeta.cronograma[dia] = padrao[dia] || 'Livre';
+        mudou = true;
+      }
+    });
+    if (mudou) salvarUserMeta();
+  }
+
+  function cicloDisciplinasDoConcurso() {
+    const nomes = disciplinasDoConcursoAtual().map(d => d.nome);
+    if (!nomes.length) return [];
+    if (concursoAtual?.slug === 'bnb') {
+      return ['Conhecimentos Bancários','Português','Conhecimentos Bancários','Matemática','Conhecimentos Bancários'].filter(n => nomes.includes(n));
+    }
+    return nomes;
+  }
+
+  function proximoBlocoDaDisciplina(nomeDisciplina, planejado) {
+    const daDisciplina = (trilhaAtual || []).filter(t => t.disciplina === nomeDisciplina);
+    let bloco = daDisciplina.find(t => (planejado[t.assunto_id]||0) < (Number(t.carga_estimada_minutos)||60));
+    if (bloco) return bloco;
+    bloco = (trilhaAtual || []).find(t => (planejado[t.assunto_id]||0) < (Number(t.carga_estimada_minutos)||60));
+    return bloco || daDisciplina[0] || trilhaAtual[0] || null;
   }
 
   function disponibilidadeParaData(data) {
@@ -1338,10 +1403,10 @@
     const historico = await supa(`/rest/v1/agenda_estudo?select=assunto_id,duracao_planejada_minutos&concurso_id=eq.${concursoAtualId}&gerado_automaticamente=eq.true&order=data.asc`);
     const planejado = {};
     (historico||[]).forEach(r => { if (r.assunto_id) planejado[r.assunto_id]=(planejado[r.assunto_id]||0)+(Number(r.duracao_planejada_minutos)||0); });
-    let idx = trilhaAtual.findIndex(t => (planejado[t.assunto_id]||0) < (Number(t.carga_estimada_minutos)||60));
-    if (idx < 0) idx = 0;
+    const ciclo = cicloDisciplinasDoConcurso();
     const ini = inicioSemanaLocal(ref), rows=[];
     const hojeKey = dataLocalKey(new Date());
+    let slotEstudo = 0;
     for (let off=0; off<7; off++) {
       const data = new Date(ini); data.setDate(ini.getDate()+off);
 
@@ -1351,11 +1416,13 @@
 
       const disp = disponibilidadeParaData(data);
       if (!disp?.disponivel || Number(disp.minutos_disponiveis)<=0) continue;
-      let bloco = trilhaAtual[idx];
-      if (!bloco) { idx=0; bloco=trilhaAtual[0]; }
+      const disciplinaDesejada = ciclo.length ? ciclo[slotEstudo % ciclo.length] : trilhaAtual[0]?.disciplina;
+      const bloco = proximoBlocoDaDisciplina(disciplinaDesejada, planejado);
+      if (!bloco) continue;
+      slotEstudo++;
       const carga = Number(bloco.carga_estimada_minutos)||60;
       const ja = planejado[bloco.assunto_id]||0;
-      let restante = Math.max(30, carga-ja);
+      const restante = Math.max(30, carga-ja);
       const disponivel = Math.max(30, Number(disp.minutos_disponiveis)||60);
       const duracao = Math.min(disponivel, restante);
       rows.push({
@@ -1365,7 +1432,6 @@
         status:'planejada', origem:'trilha', ordem_no_dia:1, gerado_automaticamente:true
       });
       planejado[bloco.assunto_id]=ja+duracao;
-      if (planejado[bloco.assunto_id] >= carga) idx++;
     }
     if (rows.length) await supa('/rest/v1/agenda_estudo?on_conflict=user_id,data,ordem_no_dia',{method:'POST',headers:{'Prefer':'resolution=merge-duplicates,return=representation'},body:JSON.stringify(rows)});
     return carregarAgendaSemana(ref);
@@ -3123,7 +3189,8 @@
   function renderPlanEditor() {
     const c = document.getElementById('cfg-cronograma');
     if (!c) return;
-    const disciplinas = (disciplinasRemotas.length ? disciplinasRemotas : DISCIPLINAS.map((d,i)=>({id:'',nome:d.nome}))).concat([{id:'',nome:'Livre'}]);
+    const disciplinasConcurso = disciplinasDoConcursoAtual();
+    const disciplinas = (disciplinasConcurso.length ? disciplinasConcurso : [{id:'',nome:'Livre'}]).concat(disciplinasConcurso.length ? [{id:'',nome:'Livre'}] : []);
     const atividades = [
       ['teoria_questoes','Teoria + questões'],['teoria','Só teoria'],['questoes','Só questões'],['revisao','Revisão'],['simulado','Simulado']
     ];
