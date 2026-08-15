@@ -5,7 +5,7 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
@@ -461,14 +461,22 @@
 
     @media(max-width:1050px){ .plan-layout{grid-template-columns:1fr}.plan-edit-grid{grid-template-columns:1fr 1fr}.trail-compass{display:none} }
     @media(max-width:700px){
-      .sidebar { position:fixed; top:auto; bottom:0; left:0; right:0; height:67px; width:100%; z-index:100; flex-direction:row; justify-content:space-around; overflow:visible; padding:7px 5px; border-top:1px solid rgba(255,255,255,.1); }
+      /* Mobile: mantém o layout atual e evita que o conteúdo fique escondido sob a navegação fixa. */
+      .sidebar { position:fixed; top:auto; bottom:0; left:0; right:0; height:calc(67px + env(safe-area-inset-bottom, 0px)); width:100%; z-index:100; flex-direction:row; justify-content:space-around; overflow:visible; padding:7px 5px calc(7px + env(safe-area-inset-bottom, 0px)); border-top:1px solid rgba(255,255,255,.1); }
       .sidebar-logo,.sidebar-user,.nav-group-label,.nav-sair,.sidebar .nav-item { display:none; }
       .sidebar .nav-item.mobile-primary { display:flex; flex:1; flex-direction:column; gap:2px; padding:7px 3px; margin:0; font-size:9px; text-align:center; justify-content:center; border-radius:10px; }
       .sidebar .nav-item i { font-size:19px; }
       .nav-item.active { box-shadow:none; background:rgba(228,123,37,.2); }
-      .main-app { padding-bottom:67px; }
+
+      /* O scroll fica em .main; 100dvh acompanha a altura útil quando a barra do Chrome aparece/some. */
+      .main-app { height:100vh; height:100dvh; padding-bottom:0; overflow:hidden; }
+      .main { height:100vh; height:100dvh; overflow-y:auto; overflow-x:hidden; -webkit-overflow-scrolling:touch; scroll-padding-bottom:calc(120px + env(safe-area-inset-bottom, 0px)); }
       .topbar { padding:13px 15px; }
-      .content { padding:14px; }
+      .content { padding:14px; padding-bottom:calc(120px + env(safe-area-inset-bottom, 0px)); }
+
+      /* Folga adicional nas telas longas (questões, revisão, simulado e plano semanal). */
+      #q-quiz, #rev-quiz, #sim-exam, #page-cronograma { scroll-margin-bottom:calc(120px + env(safe-area-inset-bottom, 0px)); }
+      #q-opcoes, #rev-opcoes, #sim-opcoes { padding-bottom:18px; }
       .trail-hero { min-height:0; padding:24px 20px; border-radius:20px; }
       .trail-hero h1 { font-size:25px; }
       .metrics-grid { grid-template-columns:1fr 1fr; }
